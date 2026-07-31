@@ -1,26 +1,23 @@
 import os
-from enum import Enum
-from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 from pydantic_ai import Agent
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.models.groq import GroqModel
+from pydantic_ai.providers.groq import GroqProvider
 
+from agents_service.models import IntentClassification
 from agents_service.prompts import (
     CLASSIFIER_AGENT_INSTRUCTIONS,
     CLASSIFIER_PROMPT_TEMPLATE,
 )
-from agents_service.models import IntentClassification
 
 load_dotenv()
 
 model_name: str = os.getenv("INTENT_CLASSIFIER_MODEL", "google/gemma-4-26b-a4b-it:free")
 
-model = GoogleModel(
+model = GroqModel(
     model_name,
-    provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", "")),
+    provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
 )
 classifier_agent = Agent(
     model, instructions=CLASSIFIER_AGENT_INSTRUCTIONS, output_type=IntentClassification
