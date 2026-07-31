@@ -1,8 +1,15 @@
-from .llm_instructions import (
-    build_decomposer_instructions,
+from .classifier_prompts import (
     CLASSIFIER_AGENT_INSTRUCTIONS,
     CLASSIFIER_PROMPT_TEMPLATE,
+)
+from .decomposer_prompts import (
     DECOMPOSER_PROMPT_TEMPLATE,
+)
+from .strategies import build_decomposer_instructions
+from .subagent_prompts import (
+    DEPENDENCY_CONTEXT_TEMPLATE,
+    SUBAGENT_AGENT_INSTRUCTIONS,
+    SUBAGENT_PROMPT_TEMPLATE,
 )
 
 __all__ = [
@@ -10,4 +17,7 @@ __all__ = [
     "CLASSIFIER_AGENT_INSTRUCTIONS",
     "CLASSIFIER_PROMPT_TEMPLATE",
     "DECOMPOSER_PROMPT_TEMPLATE",
+    "DEPENDENCY_CONTEXT_TEMPLATE",
+    "SUBAGENT_AGENT_INSTRUCTIONS",
+    "SUBAGENT_PROMPT_TEMPLATE",
 ]
