@@ -79,27 +79,27 @@ async def execute_task(
     return output
 
 
-import asyncio
-from agents_service.models import Task
+# import asyncio
+# from agents_service.models import Task
 
 
-async def main():
-    task = Task(
-        id="task_2",
-        name="Deep Dive: Industrial Induction Heating",
-        objective=(
-            "Analyze induction heating as a technology. Detail its electromagnetic induction "
-            "mechanism, the core components of induction heating systems (power supplies, "
-            "coils, workpieces), and its specific industrial applications (e.g., metal "
-            "hardening, forging, melting). Include the physical principles (skin effect, "
-            "hysteresis) that make it efficient."
-        ),
-        depends_on=[],
-    )
+# async def main():
+#     task = Task(
+#         id="task_2",
+#         name="Deep Dive: Industrial Induction Heating",
+#         objective=(
+#             "Analyze induction heating as a technology. Detail its electromagnetic induction "
+#             "mechanism, the core components of induction heating systems (power supplies, "
+#             "coils, workpieces), and its specific industrial applications (e.g., metal "
+#             "hardening, forging, melting). Include the physical principles (skin effect, "
+#             "hysteresis) that make it efficient."
+#         ),
+#         depends_on=[],
+#     )
 
-    result = await execute_task(task)
-    print(result.model_dump_json(indent=2))
+#     result = await execute_task(task)
+#     print(result.model_dump_json(indent=2))
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
