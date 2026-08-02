@@ -6,9 +6,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiolimiter>=1.2.1",
+    "alembic>=1.18.5",
+    "asyncpg>=0.31.0",
     "pydantic>=2.13.4",
     "pydantic-ai>=2.15.0",
     "pydantic-ai-slim[groq]>=2.15.0",
     "rich>=15.0.0",
+    "sqlalchemy>=2.0.51",
     "tavily-python>=0.7.26",
 ]
