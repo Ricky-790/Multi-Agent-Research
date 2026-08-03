@@ -8,13 +8,15 @@ class SignupRequest(BaseModel):
 
 
 class SigninRequest(BaseModel):
-    username: str
+    email: EmailStr
     password: str
 
 
-class SignupResponse(BaseModel):
-    pass
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
-class SigninResponse(BaseModel):
-    pass
+# Keep old names as aliases so any existing imports don't break
+SignupResponse = AuthResponse
+SigninResponse = AuthResponse
