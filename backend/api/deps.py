@@ -1,15 +1,55 @@
 from uuid import UUID
+
+import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from backend.auth.security import decode_access_token
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/signin")
+from backend.api.auth.security import decode_jwt
+
+_bearer = HTTPBearer()
 
 
-async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> UUID:
-    payload = decode_access_token(token)
-    if payload is None:
+class AuthenticatedUser:
+    """Parsed, validated token payload attached to a request."""
+
+    def __init__(self, user_id: UUID, email: str) -> None:
+        self.user_id = user_id
+        self.email = email
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+) -> AuthenticatedUser:
+    """
+    FastAPI dependency that validates the Bearer JWT and returns the
+    parsed token payload as an AuthenticatedUser.
+
+    Raises HTTP 401 for missing, malformed, or expired tokens.
+    """
+    token = credentials.credentials
+    try:
+        payload = decode_jwt(token)
+    except jwt.ExpiredSignatureError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return UUID(payload["sub"])
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        return AuthenticatedUser(
+            user_id=UUID(payload["sub"]),
+            email=payload["email"],
+        )
+    except (KeyError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Malformed token payload.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
