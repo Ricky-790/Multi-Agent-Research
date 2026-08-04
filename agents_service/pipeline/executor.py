@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 async def execute_research_phase(
-    plan: ResearchPlan, max_concurrency: int = 2
+    plan: ResearchPlan,
+    on_task_update,
+    max_concurrency: int = 2,
 ) -> dict[str, TaskResult]:
     semaphore = asyncio.Semaphore(max_concurrency)
     done: dict[str, TaskResult] = {}
@@ -48,6 +50,7 @@ async def execute_research_phase(
 
         for t, r in zip(ready, results):
             done[t.id] = r
+            await on_task_update(r.task_id, r.status, r.model_dump(mode="json"))
             del remaining[t.id]
 
     return done

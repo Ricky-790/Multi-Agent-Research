@@ -1,34 +1,50 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends
-from agents_service.agents import classify_query
-from agents_service.models import IntentEnum
-from backend.api.dto_models import ChatRequest, ChatResponse
-from backend.db.session import get_session
-from backend.db.services.user_report_service import reports_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.session import get_session
+from backend.db.services.user_report_service import reports_service
+from backend.celery_app.tasks import run_research_pipeline_task
+from backend.api.deps import get_current_user, AuthenticatedUser
+from backend.api.dto_models import ChatRequest, ChatResponse
+
+from agents_service.models import IntentEnum
+from agents_service.agents import classify_query
 
 router = APIRouter()
 
 
-@router.post("/chat")
+@router.post("/chat", response_model=ChatResponse)
 async def send_message(
-    payload: ChatRequest, session: AsyncSession = Depends(get_session)
-):
+    payload: ChatRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ChatResponse:
     classification = await classify_query(payload.query)
     categories = [c.value for c in classification.categories]
 
-    report = await reports_service.create_report(user_id, payload.query)
+    report = await reports_service.create_report(session, user.user_id, payload.query)
     await reports_service.save_classification(
-        report.id, classification.intent.value, categories, classification.response
+        session,
+        report.id,
+        classification.intent.value,
+        categories,
+        classification.response,
     )
 
     if classification.intent != IntentEnum.RESEARCH_TOPIC:
-        await reports_service.update_status(report.id, "done")
+        await reports_service.update_status(session, report.id, "done")
         return ChatResponse(
-            message=classification.response, intent=classification.intent
+            message=classification.response,
+            intent=classification.intent,
+            report_id=None,
         )
 
-    await reports_service.update_status(report.id, "pending")
-
+    await reports_service.update_status(session, report.id, "pending")
     run_research_pipeline_task.delay(str(report.id))
-    return ChatResponse(message=classification.response, intent=classification.intent)
+
+    return ChatResponse(
+        message=classification.response,
+        intent=classification.intent,
+        report_id=report.id,
+    )
