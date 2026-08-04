@@ -22,7 +22,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def encode_jwt(user_id: UUID, email: str) -> str:
     payload = {
-        "sub": str(user_id),
+        "id": str(user_id),
         "email": email,
         "exp": datetime.now(tz=timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
     }

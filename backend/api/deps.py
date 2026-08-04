@@ -44,7 +44,7 @@ def get_current_user(
 
     try:
         return AuthenticatedUser(
-            user_id=UUID(payload["sub"]),
+            user_id=UUID(payload["id"]),
             email=payload["email"],
         )
     except (KeyError, ValueError):
