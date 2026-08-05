@@ -2,16 +2,17 @@ import asyncio
 import logging
 from uuid import UUID
 
-from backend.celery_app.config import celery_app
-from backend.db.session import async_session_factory
-from backend.db.services.user_report_service import reports_service
-from backend.db.services.task_service import tasks_service
-
-from agents_service.models import IntentEnum
 from agents_service.agents.classifier_agent import classify_query
 from agents_service.agents.decomposer_agent import create_research_plan
-from agents_service.pipeline.executor import execute_research_phase
+from agents_service.models import IntentEnum
 from agents_service.pipeline.create_report import generate_report
+from agents_service.pipeline.executor import execute_research_phase
+from backend.api.dto_models import PublishMessage
+from backend.api.redis_manager import client
+from backend.celery_app.config import celery_app
+from backend.db.services.task_service import tasks_service
+from backend.db.services.user_report_service import reports_service
+from backend.db.session import async_session_factory
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +47,35 @@ async def _run_and_persist(report_id: UUID) -> None:
         categories = report.categories
 
         # --- Planning ---
+        await client.publish(
+            f"report:{report_id}",
+            PublishMessage(
+                phase="Planning",
+                status="Starting",
+            ).model_dump_json(),
+        )
         await reports_service.update_status(session, report_id, "planning")
         plan = await create_research_plan(query, categories)
         await reports_service.save_plan_metadata(
             session, report_id, plan.strategy_summary
         )
         await tasks_service.create_tasks_from_plan(session, report_id, plan)
-
+        await client.publish(
+            f"report:{report_id}",
+            PublishMessage(
+                phase="Planning",
+                status="Finished",
+            ).model_dump_json(),
+        )
         # --- Research ---
         await reports_service.update_status(session, report_id, "researching")
+        await client.publish(
+            f"report:{report_id}",
+            PublishMessage(
+                phase="Research",
+                status="Starting",
+            ).model_dump_json(),
+        )
 
         async def on_task_update(task_id: str, status: str, result: dict | None):
             if result is not None:
@@ -69,12 +90,32 @@ async def _run_and_persist(report_id: UUID) -> None:
         results = await execute_research_phase(
             plan, max_concurrency=2, on_task_update=on_task_update
         )
-
+        await client.publish(
+            f"report:{report_id}",
+            PublishMessage(
+                phase="Research",
+                status="Finished",
+            ).model_dump_json(),
+        )
         # --- Synthesis ---
+        await client.publish(
+            f"report:{report_id}",
+            PublishMessage(
+                phase="Synthesis",
+                status="Starting",
+            ).model_dump_json(),
+        )
         await reports_service.update_status(session, report_id, "synthesizing")
         report_output = await generate_report(query, results)
         await reports_service.save_report_content(
             session, report_id, report_output.title, report_output.content
         )
-
+        await client.publish(
+            f"report:{report_id}",
+            PublishMessage(
+                phase="Synthesis",
+                status="Finished",
+                done=True
+            ).model_dump_json(),
+        )
         await reports_service.update_status(session, report_id, "done")

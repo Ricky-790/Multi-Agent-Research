@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.models import UserReport, RunStatus
+from backend.db.models import RunStatus, UserReport
 
 
 class UserReportService:
