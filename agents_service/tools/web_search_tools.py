@@ -1,7 +1,9 @@
-from typing import Union, List, Literal, Dict, Any, Optional
-from agents_service.tools.schemas import SearchResult
-from tavily import AsyncTavilyClient
 import os
+from typing import Dict, List, Literal, Union
+
+from tavily import AsyncTavilyClient
+
+from agents_service.tools.schemas import SearchResult
 
 tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 

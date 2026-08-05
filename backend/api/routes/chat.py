@@ -1,15 +1,15 @@
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.session import get_session
-from backend.db.services.user_report_service import reports_service
-from backend.celery_app.tasks import run_research_pipeline_task
-from backend.api.deps import get_current_user, AuthenticatedUser
-from backend.api.dto_models import ChatRequest, ChatResponse
-
-from agents_service.models import IntentEnum
 from agents_service.agents import classify_query
+from agents_service.models import IntentEnum
+from backend.api.deps import AuthenticatedUser, get_current_user
+from backend.api.dto_models import ChatRequest, ChatResponse
+from backend.celery_app.tasks import run_research_pipeline_task
+from backend.db.services.user_report_service import reports_service
+from backend.db.session import get_session
 
 router = APIRouter()
 
