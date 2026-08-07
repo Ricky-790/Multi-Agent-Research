@@ -21,6 +21,27 @@ class ChatResponse(BaseModel):
 # Reports route
 
 
+class ReportStatusResponse(BaseModel):
+    """Returned when the report is still in progress."""
+
+    report_id: UUID
+    status: str
+
+
+class ReportResponse(BaseModel):
+    """Returned when the report has completed successfully."""
+
+    report_id: UUID
+    goal: str
+    intent: str | None
+    categories: list[str] | None
+    strategy_summary: str | None
+    title: str | None
+    content: str | None
+    created_at: str
+    updated_at: str
+
+
 class PublishMessage(BaseModel):
     phase: str
     status: Literal["Starting", "Finished"]
