@@ -1,7 +1,7 @@
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, WebSocket
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.api.auth.security import decode_jwt
@@ -17,7 +17,7 @@ class AuthenticatedUser:
         self.email = email
 
 
-def get_current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> AuthenticatedUser:
     """
@@ -53,3 +53,15 @@ def get_current_user(
             detail="Malformed token payload.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def get_current_user_ws(ws: WebSocket):
+    token = ws.query_params.get("token")
+    if token is None:
+        raise HTTPException(status_code=401)
+
+    payload = decode_jwt(token)
+    return AuthenticatedUser(
+        user_id=UUID(payload["id"]),
+        email=payload["email"],
+    )

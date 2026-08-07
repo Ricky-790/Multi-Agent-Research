@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from uuid import UUID
-
+import traceback
 from agents_service.agents.classifier_agent import classify_query
 from agents_service.agents.decomposer_agent import create_research_plan
 from agents_service.models import IntentEnum
@@ -25,8 +25,9 @@ def run_research_pipeline_task(self, report_id: str):
     """
     try:
         asyncio.run(_run_and_persist(UUID(report_id)))
-    except Exception:
+    except Exception as e:
         logger.exception(f"Pipeline failed for report_id={report_id}")
+        traceback.print_exc()
         asyncio.run(_mark_failed(UUID(report_id)))
         raise
 
@@ -78,14 +79,21 @@ async def _run_and_persist(report_id: UUID) -> None:
         )
 
         async def on_task_update(task_id: str, status: str, result: dict | None):
-            if result is not None:
-                await tasks_service.save_task_result(
-                    session, report_id, task_id, result
-                )
-            else:
-                await tasks_service.update_task_status(
-                    session, report_id, task_id, status
-                )
+            async with async_session_factory() as session:
+                if result is not None:
+                    await tasks_service.save_task_result(
+                        session,
+                        report_id,
+                        task_id,
+                        result,
+                    )
+                else:
+                    await tasks_service.update_task_status(
+                        session,
+                        report_id,
+                        task_id,
+                        status,
+                    )
 
         results = await execute_research_phase(
             plan, max_concurrency=2, on_task_update=on_task_update
@@ -113,9 +121,7 @@ async def _run_and_persist(report_id: UUID) -> None:
         await client.publish(
             f"report:{report_id}",
             PublishMessage(
-                phase="Synthesis",
-                status="Finished",
-                done=True
+                phase="Synthesis", status="Finished", done=True
             ).model_dump_json(),
         )
         await reports_service.update_status(session, report_id, "done")
