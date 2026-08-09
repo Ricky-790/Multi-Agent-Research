@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 from uuid import UUID
 
 from fastapi import WebSocket
@@ -42,9 +42,22 @@ class ReportResponse(BaseModel):
     updated_at: str
 
 
+class ReportSummary(BaseModel):
+    report_id: UUID
+    title: str | None
+    status: str | None
+
+
+class ReportsListResponse(BaseModel):
+    reports: list[ReportSummary]
+    limit: int
+    offset: int
+
+
 class PublishMessage(BaseModel):
     phase: str
-    status: Literal["Starting", "Finished"]
+    task: Optional[str] = None
+    status: str
     done: bool = False
 
 

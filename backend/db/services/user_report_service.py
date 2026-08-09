@@ -136,17 +136,17 @@ class UserReportService:
 
     async def get_reports_by_user(
         self, session: AsyncSession, user_id: UUID, limit: int, offset: int
-    ) -> list[UserReport]:
-        """Return a paginated list of reports belonging to a user, newest first."""
+    ) -> list[tuple[UUID, str | None]]:
+        """Return a paginated list of (id, report_title) tuples for a user, newest first."""
         try:
             result = await session.execute(
-                select(UserReport)
+                select(UserReport.id, UserReport.report_title, UserReport.status)
                 .where(UserReport.user_id == user_id)
                 .order_by(UserReport.created_at.desc())
                 .limit(limit)
                 .offset(offset)
             )
-            return list(result.scalars().all())
+            return list(result.all())
         except Exception:
             await session.rollback()
             raise
