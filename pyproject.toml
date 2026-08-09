@@ -6,9 +6,18 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiolimiter>=1.2.1",
-    "pydantic>=2.13.4",
+    "alembic>=1.18.5",
+    "asyncpg>=0.31.0",
+    "celery[redis]>=5.6.3",
+    "fastapi>=0.141.1",
+    "pydantic[email]>=2.13.4",
     "pydantic-ai>=2.15.0",
     "pydantic-ai-slim[groq]>=2.15.0",
     "rich>=15.0.0",
+    "sqlalchemy>=2.0.51",
     "tavily-python>=0.7.26",
+    "uvicorn>=0.51.0",
+    "pwdlib[argon2]>=0.3.0",
+    "pyjwt>=2.13.0",
+    "redis>=6.4.0",
 ]

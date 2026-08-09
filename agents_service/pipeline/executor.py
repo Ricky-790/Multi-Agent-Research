@@ -1,6 +1,6 @@
 import asyncio
 import logging
-
+from pydantic_ai import Agent
 from agents_service.agents.subagent import execute_task
 from agents_service.models import ResearchPlan, Task, TaskResult, TaskResultStatus
 from agents_service.pipeline.rate_limiting import run_with_retry
@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 async def execute_research_phase(
-    plan: ResearchPlan, max_concurrency: int = 2
+    plan: ResearchPlan,
+    subagent: Agent,
+    on_task_update,
+    max_concurrency: int = 2,
 ) -> dict[str, TaskResult]:
     semaphore = asyncio.Semaphore(max_concurrency)
     done: dict[str, TaskResult] = {}
@@ -19,7 +22,7 @@ async def execute_research_phase(
         async with semaphore:
             logger.info(f"Starting task {task.id}: {task.name}")
             try:
-                result = await run_with_retry(execute_task, task, done)
+                result = await run_with_retry(execute_task, subagent, task, done)
             except Exception as e:
                 logger.exception(f"Task {task.id} failed after retries")
                 result = TaskResult(
@@ -48,6 +51,10 @@ async def execute_research_phase(
 
         for t, r in zip(ready, results):
             done[t.id] = r
+            task_name = remaining[t.id].name
+            await on_task_update(
+                r.task_id, r.status, r.model_dump(mode="json"), task=task_name
+            )
             del remaining[t.id]
 
     return done
