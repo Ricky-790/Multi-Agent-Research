@@ -65,3 +65,7 @@ async def get_current_user_ws(ws: WebSocket):
         user_id=UUID(payload["id"]),
         email=payload["email"],
     )
+
+
+async def get_redis_client(websocket: WebSocket):
+    return websocket.app.state.redis_client

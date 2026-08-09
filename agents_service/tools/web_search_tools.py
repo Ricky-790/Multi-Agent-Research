@@ -5,7 +5,10 @@ from tavily import AsyncTavilyClient
 
 from agents_service.tools.schemas import SearchResult
 
+
+# async def get_tavily_client():
 tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+# return tavily_client
 
 
 async def web_search(query: str, max_results: int = 3) -> List[SearchResult] | Dict:

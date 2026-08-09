@@ -20,7 +20,7 @@ async def send_message(
     user: AuthenticatedUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> ChatResponse:
-    classification = await classify_query(payload.query)
+    classification = await classify_query(query=payload.query)
     categories = [c.value for c in classification.categories]
 
     report = await reports_service.create_report(session, user.user_id, payload.query)

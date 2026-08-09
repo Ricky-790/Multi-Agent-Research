@@ -15,16 +15,24 @@ load_dotenv()
 
 model_name: str = os.getenv("INTENT_CLASSIFIER_MODEL", "google/gemma-4-26b-a4b-it:free")
 
-model = GroqModel(
-    model_name,
-    provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
-)
-classifier_agent = Agent(
-    model, instructions=CLASSIFIER_AGENT_INSTRUCTIONS, output_type=IntentClassification
-)
+
+def get_classifier_agent():
+    model = GroqModel(
+        model_name,
+        provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
+    )
+    classifier_agent = Agent(
+        model,
+        instructions=CLASSIFIER_AGENT_INSTRUCTIONS,
+        output_type=IntentClassification,
+    )
+    return classifier_agent
 
 
-async def classify_query(query: str) -> IntentClassification:
+async def classify_query(
+    query: str,
+    classifier_agent: Agent = None,
+) -> IntentClassification:
     """
     Classifies the intent of a given query, and also provides a response for certain intents.
 
@@ -34,14 +42,8 @@ async def classify_query(query: str) -> IntentClassification:
     Returns:
         IntentClassification: An object containing the classified intent and an optional response.
     """
+    if classifier_agent is None:
+        classifier_agent = get_classifier_agent()
     prompt = CLASSIFIER_PROMPT_TEMPLATE.format(query=query)
     classification = await classifier_agent.run(prompt)
     return classification.output
-
-
-# if __name__ == "__main__":
-#     import asyncio
-
-#     async def main():
-#         print(await classify_query("NVIDIA"))
-#     asyncio.run(main())

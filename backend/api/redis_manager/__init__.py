@@ -1,3 +1,3 @@
-from .config import get_client
+from .config import client
 
-__all__ = ["get_client"]
+__all__ = ["client"]

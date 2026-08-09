@@ -38,26 +38,3 @@ async def create_research_plan(goal: str, categories: list[str]) -> ResearchPlan
 
     result = await decomposer_agent.run(prompt)
     return result.output
-
-
-import asyncio
-
-from agents_service.agents import classify_query
-from agents_service.models import IntentEnum
-
-
-async def main():
-    goal = "Prepare a report on applications of electrical heating, and explain 2 applications in detail"
-
-    classification = await classify_query(goal)
-    print(f"CLASSIFICATION:\n{classification}")
-
-    if classification.intent.value == IntentEnum.RESEARCH_TOPIC:
-        plan = await create_research_plan(
-            goal, [c.value for c in classification.categories]
-        )
-        print(f"PLAN:\n{plan.model_dump_json(indent=2)}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
