@@ -22,25 +22,31 @@ from agents_service.prompts import (
 outline_model_name = os.getenv("OUTLINE_MODEL", "gemini-3.1-flash-lite")
 section_model_name = os.getenv("SECTION_WRITER_MODEL", "gemini-3.1-flash-lite")
 
-outline_model = GoogleModel(
-    outline_model_name,
-    provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", "")),
-)
-section_model = GoogleModel(
-    section_model_name,
-    provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", "")),
-)
-outline_agent = Agent(
-    outline_model,
-    output_type=ReportOutline,
-    instructions=OUTLINE_AGENT_INSTRUCTIONS,
-)
 
-section_writer_agent = Agent(
-    section_model,
-    output_type=str,
-    instructions=SECTION_WRITER_INSTRUCTIONS,
-)
+def get_outline_agent():
+    outline_model = GoogleModel(
+        outline_model_name,
+        provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", "")),
+    )
+    outline_agent = Agent(
+        outline_model,
+        output_type=ReportOutline,
+        instructions=OUTLINE_AGENT_INSTRUCTIONS,
+    )
+    return outline_agent
+
+
+def get_section_writer_agent():
+    section_model = GoogleModel(
+        section_model_name,
+        provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", "")),
+    )
+    section_writer_agent = Agent(
+        section_model,
+        output_type=str,
+        instructions=SECTION_WRITER_INSTRUCTIONS,
+    )
+    return section_writer_agent
 
 
 def _build_summaries_block(results: dict[str, TaskResult]) -> str:
@@ -79,7 +85,9 @@ def _build_outline_summary(outline: ReportOutline) -> str:
     return "\n".join(lines)
 
 
-async def generate_outline(goal: str, results: dict[str, TaskResult]) -> ReportOutline:
+async def generate_outline(
+    outline_agent: Agent, goal: str, results: dict[str, TaskResult]
+) -> ReportOutline:
     summaries_block = _build_summaries_block(results)
     prompt = OUTLINE_PROMPT_TEMPLATE.format(goal=goal, summaries_block=summaries_block)
     result = await outline_agent.run(prompt)
@@ -87,6 +95,7 @@ async def generate_outline(goal: str, results: dict[str, TaskResult]) -> ReportO
 
 
 async def write_section(
+    section_writer_agent: Agent,
     goal: str,
     outline: ReportOutline,
     section: ReportSection,
@@ -104,15 +113,3 @@ async def write_section(
     )
     result = await section_writer_agent.run(prompt)
     return result.output
-
-
-# async def generate_report(goal: str, results: dict[str, TaskResult]) -> Report:
-#     outline = await generate_outline(goal, results)
-
-#     written_sections = []
-#     for section in sorted(outline.sections, key=lambda s: s.order):
-#         content = await write_section(goal, outline, section, results)
-#         written_sections.append(f"## {section.title}\n\n{content}")
-
-#     full_content = f"# {outline.title}\n\n" + "\n\n".join(written_sections)
-#     return Report(title=outline.title, content=full_content)

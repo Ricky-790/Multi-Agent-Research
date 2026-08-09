@@ -46,4 +46,4 @@ async def run_with_retry(coro_fn, *args, max_retries: int = 4, **kwargs):
             raise
 
     if last_error is not None:
-       raise last_error
+        raise last_error

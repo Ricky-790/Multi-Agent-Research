@@ -21,16 +21,18 @@ model_name: str = os.getenv("SUBAGENT_MODEL", "llama-3.3-70b-versatile")
 #     provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
 # )
 
-model = GoogleModel(
-    model_name, provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", ""))
-)
 
-subagent = Agent(
-    model,
-    output_type=TaskResult,
-    tools=[web_search, extract_page, crawl_page],
-    instructions=SUBAGENT_AGENT_INSTRUCTIONS,
-)
+def get_subagent():
+    model = GoogleModel(
+        model_name, provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", ""))
+    )
+    subagent = Agent(
+        model,
+        output_type=TaskResult,
+        tools=[web_search, extract_page, crawl_page],
+        instructions=SUBAGENT_AGENT_INSTRUCTIONS,
+    )
+    return subagent
 
 
 def _build_dependency_context(task: Task, results_so_far: dict[str, TaskResult]) -> str:
@@ -54,7 +56,7 @@ def _build_dependency_context(task: Task, results_so_far: dict[str, TaskResult])
 
 
 async def execute_task(
-    task: Task, results_so_far: dict[str, TaskResult] | None = None
+    subagent: Agent, task: Task, results_so_far: dict[str, TaskResult] | None = None
 ) -> TaskResult:
     results_so_far = results_so_far or {}
     dependency_context = _build_dependency_context(task, results_so_far)
@@ -77,29 +79,3 @@ async def execute_task(
                     seen.add(url)
 
     return output
-
-
-# import asyncio
-# from agents_service.models import Task
-
-
-# async def main():
-#     task = Task(
-#         id="task_2",
-#         name="Deep Dive: Industrial Induction Heating",
-#         objective=(
-#             "Analyze induction heating as a technology. Detail its electromagnetic induction "
-#             "mechanism, the core components of induction heating systems (power supplies, "
-#             "coils, workpieces), and its specific industrial applications (e.g., metal "
-#             "hardening, forging, melting). Include the physical principles (skin effect, "
-#             "hysteresis) that make it efficient."
-#         ),
-#         depends_on=[],
-#     )
-
-#     result = await execute_task(task)
-#     print(result.model_dump_json(indent=2))
-
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
