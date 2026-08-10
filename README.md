@@ -96,3 +96,8 @@ uv run celery -A backend.celery_app worker --loglevel=info
 ## Frontend Setup
 
 ---
+
+## Features to add
+- Save normal conversations & add message history
+- Add tools for adding diagrams to reports (by running python code in sandbox)
+- Enable modifications after report is generated
