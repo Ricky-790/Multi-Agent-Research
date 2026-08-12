@@ -1,6 +1,8 @@
 import asyncio
 import logging
+
 from pydantic_ai import Agent
+
 from agents_service.agents.subagent import execute_task
 from agents_service.models import ResearchPlan, Task, TaskResult, TaskResultStatus
 from agents_service.pipeline.rate_limiting import run_with_retry

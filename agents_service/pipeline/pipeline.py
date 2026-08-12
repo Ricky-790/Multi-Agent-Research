@@ -1,15 +1,15 @@
 from agents_service.agents import (
     classify_query,
     create_research_plan,
-    get_subagent,
     get_classifier_agent,
     get_outline_agent,
     get_section_writer_agent,
+    get_subagent,
 )
 from agents_service.models import (
+    IntentClassification,
     IntentEnum,
     Report,
-    IntentClassification,
     ResearchPlan,
     TaskResult,
 )
