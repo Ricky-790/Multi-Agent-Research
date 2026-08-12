@@ -1,7 +1,8 @@
+from pydantic_ai import Agent
+
 from agents_service.agents import generate_outline, write_section
 from agents_service.models import Report, ReportOutline, TaskResult
 from agents_service.pipeline.rate_limiting import run_with_retry
-from pydantic_ai import Agent
 from custom_logger import get_logger
 
 logger = get_logger()

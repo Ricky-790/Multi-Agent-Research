@@ -1,7 +1,7 @@
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status, WebSocket
+from fastapi import Depends, HTTPException, WebSocket, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.api.auth.security import decode_jwt
