@@ -22,8 +22,6 @@ async def lifespan(app: FastAPI):  # Get client on startup, close on shutdown
 
 app = FastAPI(title="Multi-Agent Research API", lifespan=lifespan)
 
-app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

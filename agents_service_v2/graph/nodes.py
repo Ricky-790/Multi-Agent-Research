@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from langgraph.types import Send, StreamWriter
 
@@ -17,6 +16,7 @@ from agents_service.models import (
     ResearchPlan,
     TaskResult,
     TaskResultStatus,
+    TaskStatus,
 )
 from agents_service.pipeline.rate_limiting import run_with_retry
 from agents_service_v2.graph.state import (
@@ -24,6 +24,7 @@ from agents_service_v2.graph.state import (
     ResearchPhaseState,
     SectionWriteState,
 )
+from backend.api.dto_models import PublishMessage
 
 logger = logging.getLogger(__name__)
 
@@ -33,18 +34,22 @@ logger = logging.getLogger(__name__)
 
 async def decompose_node(state: ResearchGraphState, writer: StreamWriter) -> dict:
     """Generate the research plan (DAG). This is now the graph entry point."""
-    writer({"event": "stage", "phase": "planning", "status": "starting"})
-
+    writer(
+        {
+            "phase": "planning",
+            "status": "starting",
+        }
+    )
     plan: ResearchPlan = await create_research_plan(state["query"], state["categories"])
     logger.info(f"Plan generated with {len(plan.tasks)} tasks")
 
     writer(
         {
-            "event": "stage",
             "phase": "planning",
             "status": "finished",
-            "strategy_summary": plan.strategy_summary,
-            "task_count": len(plan.tasks),
+            "strategy": plan.strategy_summary,
+            "msg": f"Research plan summary: {plan.strategy_summary}",
+            "plan": plan,
         }
     )
 
@@ -61,8 +66,12 @@ async def research_supervisor_node(
     Initializes the research phase subgraph state.
     This runs inside the subgraph, receiving the subgraph's state schema.
     """
-    writer({"event": "stage", "phase": "research", "status": "starting"})
-
+    writer(
+        {
+            "phase": "researching",
+            "status": "starting",
+        }
+    )
     plan = state["plan"]
     pending = [t.id for t in plan.tasks]
 
@@ -97,17 +106,38 @@ async def execute_task_node(state: dict, writer: StreamWriter) -> dict:
     """
     from agents_service.agents.subagent import execute_task as run_subagent_task
 
+    print("INSIDE EXEC_TASK_NODE")
+
     task = state["task"]
     done = state["done"]
     subagent = get_subagent()
 
     logger.info(f"Starting task {task.id}: {task.name}")
+    print("Before writer")
     writer(
-        {"event": "task", "task_id": task.id, "status": "running", "name": task.name}
+        {
+            "phase": "researching",
+            "status": "running",
+            "task_id": task.id,
+            "task_name": task.name,
+            "task_status": "running",
+        }
     )
+    print("After writer")
 
     try:
         result = await run_with_retry(run_subagent_task, subagent, task, done)
+        logger.info(f"{task.id} Success")
+        writer(
+            {
+                "phase": "researching",
+                "status": "running",
+                "task_id": task.id,
+                "task_name": task.name,
+                "task_status": "done",
+                "task_result": result.model_dump_json(),
+            }
+        )
     except Exception as e:
         logger.exception(f"Task {task.id} failed after retries")
         result = TaskResult(
@@ -118,17 +148,18 @@ async def execute_task_node(state: dict, writer: StreamWriter) -> dict:
             sources=[],
             notes=str(e),
         )
+        writer(
+            {
+                "phase": "researching",
+                "status": "running",
+                "task_id": task.id,
+                "task_name": task.name,
+                "task_status": "failed",
+                "task_result": result.model_dump_json(),
+            }
+        )
 
-    logger.info(f"Finished task {task.id} with status={result.status}")
-    writer(
-        {
-            "event": "task",
-            "task_id": task.id,
-            "status": result.status.value,
-            "name": task.name,
-            "result": result.model_dump(mode="json"),
-        }
-    )
+        logger.info(f"Finished task {task.id} with status={result.status}")
 
     return {
         "done": {task.id: result},
@@ -148,8 +179,12 @@ async def research_gather_node(state: ResearchPhaseState, writer: StreamWriter) 
     pending = [tid for tid in state["pending"] if tid not in completed]
 
     if not pending:
-        writer({"event": "stage", "phase": "research", "status": "finished"})
-
+        writer(
+            {
+                "phase": "researching",
+                "status": "finished",
+            }
+        )
     return {
         "pending": pending,
         "just_completed": [],
@@ -163,8 +198,12 @@ async def synthesize_outline_node(
     state: ResearchGraphState, writer: StreamWriter
 ) -> dict:
     """Creates the report outline from research findings."""
-    writer({"event": "stage", "phase": "synthesis", "status": "starting"})
-
+    writer(
+        {
+            "phase": "synthesis",
+            "status": "starting",
+        }
+    )
     outline_agent = get_outline_agent()
     outline = await run_with_retry(
         generate_outline, outline_agent, state["query"], state["task_results"]
@@ -173,10 +212,9 @@ async def synthesize_outline_node(
 
     writer(
         {
-            "event": "stage",
             "phase": "synthesis",
-            "status": "outline_ready",
-            "section_count": len(outline.sections),
+            "status": "running",
+            "msg": "Report outline generated",
         }
     )
 
@@ -221,10 +259,9 @@ async def write_section_node(state: SectionWriteState, writer: StreamWriter) -> 
     logger.info(f"Writing section {section.order}: {section.title}")
     writer(
         {
-            "event": "section",
-            "order": section.order,
-            "status": "writing",
-            "title": section.title,
+            "phase": "synthesis",
+            "status": "running",
+            "msg": f"Writing {section.order}: {section.title}",
         }
     )
 
@@ -239,10 +276,9 @@ async def write_section_node(state: SectionWriteState, writer: StreamWriter) -> 
 
     writer(
         {
-            "event": "section",
-            "order": section.order,
-            "status": "completed",
-            "title": section.title,
+            "phase": "synthesis",
+            "status": "finished",
+            "msg": f"Writing {section.order}: {section.title}",
         }
     )
 
@@ -256,6 +292,13 @@ def compile_report_node(state: ResearchGraphState, writer: StreamWriter) -> dict
     """Assembles final markdown report from written sections."""
     outline = state["report_outline"]
     sections = state["written_sections"]
+    writer(
+        {
+            "phase": "synthesis",
+            "status": "running",
+            "msg": "Compiling final report",
+        }
+    )
 
     written = []
     for section in sorted(outline.sections, key=lambda s: s.order):
@@ -266,6 +309,11 @@ def compile_report_node(state: ResearchGraphState, writer: StreamWriter) -> dict
     report = Report(title=outline.title, content=full_content)
 
     logger.info(f"Report generated: '{report.title}' ({len(report.content)} chars)")
-    writer({"event": "stage", "phase": "synthesis", "status": "finished"})
-
+    writer(
+        {
+            "phase": "synthesis",
+            "status": "finished",
+            "done": True,
+        }
+    )
     return {"final_report": report}
