@@ -1,6 +1,8 @@
 import asyncio
 import logging
+
 from pydantic_ai import Agent
+
 from agents_service.agents.subagent import execute_task
 from agents_service.models import ResearchPlan, Task, TaskResult, TaskResultStatus
 from agents_service.pipeline.rate_limiting import run_with_retry
@@ -20,7 +22,7 @@ async def execute_research_phase(
 
     async def run_with_limit(task: Task) -> TaskResult:
         async with semaphore:
-            logger.info(f"Starting task {task.id}: {task.name}")
+            # logger.info(f"Starting task {task.id}: {task.name}")
             try:
                 result = await run_with_retry(execute_task, subagent, task, done)
             except Exception as e:

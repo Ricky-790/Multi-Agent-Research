@@ -97,7 +97,50 @@ uv run celery -A backend.celery_app worker --loglevel=info
 
 ---
 
-## Features to add
-- Save normal conversations & add message history
-- Add tools for adding diagrams to reports (by running python code in sandbox)
-- Enable modifications after report is generated
+## Features to add (V2 Checklist)
+
+### LLM / Agent workflow
+
+* [ ] Migrate `agents_service` to **LangChain/LangGraph**
+* [ ] Define explicit **LangGraph state**
+* [ ] Implement conditional routing / adaptive research
+* [ ] Add **research replanning** when evidence is insufficient
+* [ ] Implement **chat history / conversation memory**
+* [ ] Add **human-in-the-loop** interruption/resume
+
+### Research quality
+
+* [ ] Build **claim + evidence + source** model
+* [ ] Add claim-level **citation/provenance**
+* [ ] Add contradiction detection
+* [ ] Add research/evidence **confidence scores**
+* [ ] Implement context selection / **context engineering**
+* [ ] Add RAG / hybrid retrieval
+
+### Infrastructure
+
+* [ ] Stream agent responses/events to frontend
+* [ ] Add durable execution / **checkpointing**
+* [ ] Add retries + failure recovery
+* [ ] Add LLM **model routing**
+* [ ] Add token/cost tracking
+* [ ] Add caching
+* [ ] Add rate limiting
+* [ ] Add distributed tracing / observability
+
+### Evaluation
+
+* [ ] Create research evaluation dataset
+* [ ] Implement LLM/agent **evals**
+* [ ] Evaluate citation correctness
+* [ ] Evaluate research completeness/factuality
+* [ ] Track latency + cost per run
+* [ ] Add regression tests for agent workflows
+
+### Advanced
+
+* [ ] Sandboxed code execution for charts/data analysis
+* [ ] Agent-generated diagrams
+* [ ] Editable reports → targeted re-research
+* [ ] Research artifacts/versioning
+* [ ] Experiment/prompt version tracking
