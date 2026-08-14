@@ -101,18 +101,18 @@ uv run celery -A backend.celery_app worker --loglevel=info
 
 ### LLM / Agent workflow
 
-* [ ] Migrate `agents_service` to **LangChain/LangGraph**
-* [ ] Define explicit **LangGraph state**
-* [ ] Implement conditional routing / adaptive research
-* [ ] Add **research replanning** when evidence is insufficient
+* [x] Migrate `agents_service` to **LangChain/LangGraph**
 * [ ] Implement **chat history / conversation memory**
+* [ ] Add **research replanning** when evidence is insufficient
+* [ ] Implement conditional routing / adaptive research
+* [ ] Define explicit **LangGraph state**
 * [ ] Add **human-in-the-loop** interruption/resume
 
 ### Research quality
 
+* [ ] Add contradiction detection
 * [ ] Build **claim + evidence + source** model
 * [ ] Add claim-level **citation/provenance**
-* [ ] Add contradiction detection
 * [ ] Add research/evidence **confidence scores**
 * [ ] Implement context selection / **context engineering**
 * [ ] Add RAG / hybrid retrieval
@@ -122,11 +122,11 @@ uv run celery -A backend.celery_app worker --loglevel=info
 * [ ] Stream agent responses/events to frontend
 * [ ] Add durable execution / **checkpointing**
 * [ ] Add retries + failure recovery
+* [ ] Add distributed tracing / observability
 * [ ] Add LLM **model routing**
 * [ ] Add token/cost tracking
 * [ ] Add caching
 * [ ] Add rate limiting
-* [ ] Add distributed tracing / observability
 
 ### Evaluation
 
