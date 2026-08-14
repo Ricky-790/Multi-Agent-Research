@@ -3,6 +3,8 @@ from collections.abc import Awaitable, Callable
 
 from langgraph.types import StreamWriter
 
+from backend.api.dto_models import PublishMessage
+
 
 class RedisStreamBridge:
     """
@@ -15,22 +17,9 @@ class RedisStreamBridge:
         self.redis = redis_client
         self.channel = f"report:{report_id}"
 
-    async def publish(
-        self,
-        phase: str,
-        status: str,
-        done: bool = False,
-        task: str | None = None,
-        payload: dict | None = None,
-    ):
-        message = {
-            "phase": phase,
-            "status": status,
-            "done": done,
-            "task": task,
-            "payload": payload or {},
-        }
-        await self.redis.publish(self.channel, json.dumps(message))
+    async def publish(self, stream_message: PublishMessage):
+        message = stream_message.model_dump_json()
+        await self.redis.publish(self.channel, message)
 
     @staticmethod
     def make_on_task_update(publish_fn: Callable[..., Awaitable[None]]):

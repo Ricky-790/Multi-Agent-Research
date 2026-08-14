@@ -1,8 +1,11 @@
 import asyncio
-from typing import Literal
+import json
 from uuid import UUID
 
-from agents_service.pipeline import Pipeline
+from langgraph.types import StreamWriter
+
+from agents_service.models import IntentEnum, Report
+from agents_service_v2.graph.graph import get_research_graph
 from backend.api.dto_models import PublishMessage
 from backend.celery_app import celery_app, pipeline_resources
 from backend.db.models import RunStatus
@@ -15,10 +18,6 @@ logger = get_logger()
 
 @celery_app.task(name="run_research_pipeline", bind=True, max_retries=0)
 def run_research_pipeline_task(self, report_id: str):
-    """
-    Celery entrypoint. Celery tasks are synchronous by default; this wraps
-    our async pipeline in a fresh event loop for this worker execution.
-    """
     asyncio.run(run_pipeline(report_id))
 
 
@@ -26,36 +25,40 @@ async def run_pipeline(report_id: str) -> None:
     async with pipeline_resources() as (session_factory, redis_client):
         report_id_uuid = UUID(report_id)
 
-        async def publish(
-            phase: str,
-            status: Literal["Starting", "Finished"],
-            done: bool = False,
-            task: str | None = None,
-        ):
+        # Load report
+        async with session_factory() as session:
+            report = await reports_service.get_report_by_id(session, report_id_uuid)
+            if report is None:
+                logger.error(f"No report found for report_id={report_id}")
+                return
+
+            query = report.goal
+            categories = report.categories
+
+        # Redis publisher
+        async def publish(data: dict):
+            message = PublishMessage(
+                phase=data.get("phase"),
+                status=data.get("status"),
+                done=data.get("done", False),
+                task_name=data.get("task_name", None),
+                task_status=data.get("task_status", None),
+                task_id=data.get("task_id", None),
+                msg=data.get("msg", None),
+            )
             await redis_client.publish(
                 f"report:{report_id}",
-                PublishMessage(
-                    phase=phase, status=status, done=done, task=task
-                ).model_dump_json(),
+                message.model_dump_json(),
             )
 
-        async def on_task_update(
-            task_id: str, status: str, result: dict | None, task: str
-        ):
-            async with session_factory() as session:
-                if result is not None:
-                    await tasks_service.save_task_result(
-                        session, report_id_uuid, task_id, result
-                    )
-                else:
-                    await tasks_service.update_task_status(
-                        session, report_id_uuid, task_id, status
-                    )
-            await publish(phase="research", task=task, status=status)
+        async def update_db(data):
+            """Handles 'stage' events from graph nodes."""
+            phase = data.get("phase")
+            status = data.get("status")
+            if phase is None or status is None:
+                raise ValueError("Invalid event data: missing phase or status")
 
-        async def on_stage_complete(phase: str, status: str, **extra):
-            await publish(phase, status)
-
+            await publish(data)
             async with session_factory() as session:
                 if phase == "planning" and status == "starting":
                     await reports_service.update_status(
@@ -63,50 +66,103 @@ async def run_pipeline(report_id: str) -> None:
                     )
 
                 elif phase == "planning" and status == "finished":
-                    plan = extra["plan"]
-                    await reports_service.save_plan_metadata(
-                        session, report_id_uuid, plan.strategy_summary
-                    )
-                    await tasks_service.create_tasks_from_plan(
-                        session, report_id_uuid, plan
-                    )
                     await reports_service.update_status(
                         session, report_id_uuid, "researching"
                     )
+                    strategy: str = data.get("strategy")
+                    plan = data.get("plan", None)
+                    if strategy is not None and plan is not None:
+                        await reports_service.save_plan_metadata(
+                            session, report_id_uuid, strategy
+                        )
+                        await tasks_service.create_tasks_from_plan(
+                            session, report_id_uuid, plan
+                        )
+                    else:
+                        raise ValueError("Strategy or Plan is missing")
 
-                elif phase == "research" and status == "finished":
+                elif phase == "researching" and status == "finished":
                     await reports_service.update_status(
                         session, report_id_uuid, "synthesizing"
                     )
 
                 elif phase == "synthesis" and status == "finished":
-                    report = extra["report"]
+                    await reports_service.update_status(session, report_id_uuid, "done")
+
+        async def update_task_state(data: dict):
+            """Handles 'task' events from research subgraph nodes."""
+            phase = data.get("phase")
+            status = data.get("status")
+            if phase is None or status is None:
+                raise ValueError("Invalid event data: missing phase or status")
+            if phase == "researching" and status == "running":
+                logger.info(f"INSIDE UPDATE TASK: {data}")
+                task_id = data.get("task_id")
+                task_status = data.get("task_status")
+                result = data.get("task_result", None)
+                result = json.loads(result) if result is not None else None
+                if task_id is None or task_status is None:
+                    raise ValueError(
+                        f"Invalid event: task_id: {task_id} or task_status:{task_status}"
+                    )
+                async with session_factory() as session:
+                    if result is not None:
+                        await tasks_service.save_task_result(
+                            session, report_id_uuid, task_id, result
+                        )
+                    else:
+                        await tasks_service.update_task_status(
+                            session, report_id_uuid, task_id, task_status
+                        )
+
+                # await publish(data)
+
+        graph = get_research_graph()
+
+        initial_state = {
+            "query": query,
+            "categories": categories or [],
+            "classification": None,
+            "plan": None,
+            "task_results": {},
+            "report_outline": None,
+            "written_sections": {},
+            "final_report": None,
+            "error": None,
+            "stream_events": [],
+        }
+
+        final_state = None
+
+        try:
+            async for event in graph.astream(
+                initial_state,
+                stream_mode=["updates", "custom", "values"],
+                version="v2",
+                subgraphs=True,
+            ):
+                # logger.info(f"EVENT: {event}")
+                if event.get("type") == "custom":
+                    data = event.get("data")
+                    await publish(data)
+                    logger.info(f"DATA : {data}")
+                    await update_db(data)
+                    await update_task_state(data)
+                elif event.get("type") == "values":
+                    final_state = event.get("data", None)
+
+            if final_state and final_state.get("final_report"):
+                report = final_state["final_report"]
+                async with session_factory() as session:
                     await reports_service.save_report_content(
                         session, report_id_uuid, report.title, report.content
                     )
-                    await reports_service.update_status(session, report_id_uuid, "done")
 
-        pipeline = Pipeline(
-            on_task_update=on_task_update, on_stage_complete=on_stage_complete
-        )
-
-        try:
-            async with session_factory() as session:
-                report = await reports_service.get_report_by_id(session, report_id_uuid)
-                if report is None:
-                    logger.error(f"No report found for report_id={report_id}")
-                    return
-                query = report.goal
-                categories = report.categories
-
-            await pipeline.run_pipeline(query, categories)
-            await publish("Full", "Finished", done=True)
+            await publish({"phase": "Full", "status": "finished"})
 
         except Exception:
             logger.exception(f"Pipeline failed for report_id={report_id}")
             async with session_factory() as session:
                 await reports_service.update_status(session, report_id_uuid, "failed")
-            await publish("failed", "error", done=True)
+            await publish({"phase": "Unknown", "status": "failed"})
             raise
-    # engine + redis_client GUARANTEED disposed here, regardless of how the
-    # try/except above exited

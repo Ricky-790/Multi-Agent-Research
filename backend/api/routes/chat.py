@@ -41,6 +41,7 @@ async def send_message(
         )
 
     await reports_service.update_status(session, report.id, "pending")
+    print(type(report.id))
     run_research_pipeline_task.delay(str(report.id))
 
     return ChatResponse(

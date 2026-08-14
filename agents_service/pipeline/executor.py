@@ -22,7 +22,7 @@ async def execute_research_phase(
 
     async def run_with_limit(task: Task) -> TaskResult:
         async with semaphore:
-            logger.info(f"Starting task {task.id}: {task.name}")
+            # logger.info(f"Starting task {task.id}: {task.name}")
             try:
                 result = await run_with_retry(execute_task, subagent, task, done)
             except Exception as e:

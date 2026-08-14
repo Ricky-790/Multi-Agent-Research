@@ -4,7 +4,8 @@ from uuid import UUID
 from fastapi import WebSocket
 from pydantic import BaseModel
 
-from agents_service.models import IntentEnum
+from agents_service.models import IntentEnum, TaskStatus
+from backend.db.models import RunStatus
 
 
 # Chat route
@@ -56,9 +57,13 @@ class ReportsListResponse(BaseModel):
 
 class PublishMessage(BaseModel):
     phase: str
-    task: Optional[str] = None
     status: str
     done: bool = False
+    task_id: Optional[str] = None
+    task_name: Optional[str] = None
+    task_status: Optional[str] = None
+    msg: Optional[str] = None
+    # task_result: Optional[dict] = None
 
 
 class ConnectionManager:
