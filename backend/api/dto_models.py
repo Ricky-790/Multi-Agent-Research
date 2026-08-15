@@ -10,7 +10,12 @@ from backend.db.models import RunStatus
 
 # Chat route
 class ChatRequest(BaseModel):
-    query: str
+    message: str
+    conversation_id: UUID | None = None
+
+
+class NewChatResponse(BaseModel):
+    conversation_id: UUID
 
 
 class ChatResponse(BaseModel):
