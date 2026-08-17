@@ -41,7 +41,7 @@ RUN_STATUS_VALUES = [
     RunStatus.FAILED,
 ]
 
-ROLE_VALUES = ["User", "System"]
+ROLE_VALUES = ["User", "Agent"]
 
 
 class User(Base):

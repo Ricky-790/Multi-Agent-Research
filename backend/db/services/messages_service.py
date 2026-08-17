@@ -38,6 +38,7 @@ class MessagesService:
         conversation_id: UUID,
         role: str,
         message_content: str,
+        sequence_no: int | None = None,
     ) -> Messages:
         """Add a message to an existing conversation."""
 
@@ -51,16 +52,17 @@ class MessagesService:
             )
 
         # Get the latest sequence number
-        result = await session.execute(
-            select(func.max(Messages.sequence_no)).where(
-                Messages.conversation_id == conversation_id
+        if sequence_no is None:
+            result = await session.execute(
+                select(func.max(Messages.sequence_no)).where(
+                    Messages.conversation_id == conversation_id
+                )
             )
-        )
 
-        latest_sequence = result.scalar_one_or_none()
+            sequence_no = result.scalar_one_or_none()
 
         # Start at 0 for the first message
-        next_sequence = 0 if latest_sequence is None else latest_sequence + 1
+        next_sequence = 0 if sequence_no is None else sequence_no + 1
 
         message = Messages(
             conversation_id=conversation_id,

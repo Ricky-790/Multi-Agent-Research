@@ -1,8 +1,9 @@
-from collections.abc import AsyncIterable
 import os
+from collections.abc import AsyncIterable
 
 from dotenv import load_dotenv
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.groq import GroqModel
 from pydantic_ai.providers.groq import GroqProvider
 
@@ -50,13 +51,20 @@ async def classify_query(
     return classification.output
 
 
-async def classify_query_stream(query: str, classifier_agent: Agent | None = None)-> AsyncIterable[str]:
+async def classify_query_stream(
+    query: str,
+    message_history: list[ModelMessage] | None = None,
+    classifier_agent: Agent | None = None,
+) -> AsyncIterable[str]:
     if classifier_agent is None:
         classifier_agent = get_classifier_agent()
     prompt = CLASSIFIER_PROMPT_TEMPLATE.format(query=query)
-    async with classifier_agent.run_stream(prompt) as result:
+    async with classifier_agent.run_stream(
+        prompt, message_history=message_history
+    ) as result:
         async for message in result.stream_output():
             yield message.response
+
 
 # async def main():
 
