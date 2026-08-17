@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class IntentEnum(str, Enum):
     GREETING = "greeting"  # "hi", "hello", "hey there"
-    # SIMPLE_QUESTION = "simple_question"  # answerable directly
+    SIMPLE_QUESTION = "simple_question"  # answerable directly
     RESEARCH_TOPIC = "research_topic"  # needs the full pipeline
     UNSUPPORTED = "unsupported"  # irrelevant or out of scope
 
