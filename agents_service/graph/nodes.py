@@ -19,7 +19,7 @@ from agents_service.models import (
     TaskStatus,
 )
 from agents_service.pipeline.rate_limiting import run_with_retry
-from agents_service_v2.graph.state import (
+from agents_service.graph.state import (
     ResearchGraphState,
     ResearchPhaseState,
     SectionWriteState,
