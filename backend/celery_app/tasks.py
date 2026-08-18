@@ -5,7 +5,7 @@ from uuid import UUID
 from langgraph.types import StreamWriter
 
 from agents_service.models import IntentEnum, Report
-from agents_service_v2.graph.graph import get_research_graph
+from agents_service.graph.graph import get_research_graph
 from backend.api.dto_models import PublishMessage
 from backend.celery_app import celery_app, pipeline_resources
 from backend.db.models import RunStatus

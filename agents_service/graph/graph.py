@@ -2,7 +2,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.types import Send
 
 from agents_service.models import IntentEnum
-from agents_service_v2.graph.nodes import (
+from agents_service.graph.nodes import (
     compile_report_node,
     decompose_node,
     dispatch_section_writers,
@@ -13,7 +13,7 @@ from agents_service_v2.graph.nodes import (
     synthesize_outline_node,
     write_section_node,
 )
-from agents_service_v2.graph.state import (
+from agents_service.graph.state import (
     ResearchGraphState,
     ResearchPhaseState,
     SectionWriteState,

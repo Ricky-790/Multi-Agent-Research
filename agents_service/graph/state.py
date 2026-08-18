@@ -3,7 +3,7 @@ from typing import Annotated, Any
 
 from typing_extensions import TypedDict
 
-from agents_service_v2.models import (
+from agents_service.models import (
     IntentClassification,
     Report,
     ReportOutline,
