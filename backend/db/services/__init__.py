@@ -1,5 +1,6 @@
-from .user_service import UserService
-from .user_report_service import UserReportService
-from .task_service import TaskService
+from .messages_service import message_service
+from .task_service import tasks_service
+from .user_report_service import reports_service
+from .user_service import users_service
 
-__all__ = ["UserService", "UserReportService", "TaskService"]
+__all__ = ["users_service", "reports_service", "tasks_service", "message_service"]

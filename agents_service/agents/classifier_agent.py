@@ -1,7 +1,9 @@
 import os
+from collections.abc import AsyncIterable
 
 from dotenv import load_dotenv
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.groq import GroqModel
 from pydantic_ai.providers.groq import GroqProvider
 
@@ -16,7 +18,7 @@ load_dotenv()
 model_name: str = os.getenv("INTENT_CLASSIFIER_MODEL", "google/gemma-4-26b-a4b-it:free")
 
 
-def get_classifier_agent():
+def get_classifier_agent() -> Agent:
     model = GroqModel(
         model_name,
         provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
@@ -31,7 +33,7 @@ def get_classifier_agent():
 
 async def classify_query(
     query: str,
-    classifier_agent: Agent = None,
+    classifier_agent: Agent | None = None,
 ) -> IntentClassification:
     """
     Classifies the intent of a given query, and also provides a response for certain intents.
@@ -47,3 +49,31 @@ async def classify_query(
     prompt = CLASSIFIER_PROMPT_TEMPLATE.format(query=query)
     classification = await classifier_agent.run(prompt)
     return classification.output
+
+
+async def classify_query_stream(
+    query: str,
+    message_history: list[ModelMessage] | None = None,
+    classifier_agent: Agent | None = None,
+) -> AsyncIterable[str]:
+    if classifier_agent is None:
+        classifier_agent = get_classifier_agent()
+    prompt = CLASSIFIER_PROMPT_TEMPLATE.format(query=query)
+    async with classifier_agent.run_stream(
+        prompt, message_history=message_history
+    ) as result:
+        async for message in result.stream_output():
+            yield message.response
+
+
+# async def main():
+
+#     await classify_query_stream(
+#         "Create a ETH vs BTC vs SOL report focusing on all aspects, financial and technical"
+#     )
+
+
+# if __name__ == "__main__":
+#     import asyncio
+
+#     asyncio.run(main())

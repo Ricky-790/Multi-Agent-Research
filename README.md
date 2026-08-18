@@ -98,14 +98,20 @@ uv run celery -A backend.celery_app worker --loglevel=info
 ---
 
 ## Features to add (V2 Checklist)
+* [x] Migrate `agents_service` to **LangChain/LangGraph**
+* [x] Stream agent responses/events to frontend
+* [x] Implement **chat history / conversation memory**
+* [ ] Sandboxed code execution for charts/data analysis
+* [ ] Agent-generated diagrams
+* [ ] Add caching
+* [ ] Add rate limiting
+
+## V3 Checklist
 
 ### LLM / Agent workflow
 
-* [x] Migrate `agents_service` to **LangChain/LangGraph**
-* [ ] Implement **chat history / conversation memory**
 * [ ] Add **research replanning** when evidence is insufficient
 * [ ] Implement conditional routing / adaptive research
-* [ ] Define explicit **LangGraph state**
 * [ ] Add **human-in-the-loop** interruption/resume
 
 ### Research quality
@@ -113,20 +119,14 @@ uv run celery -A backend.celery_app worker --loglevel=info
 * [ ] Add contradiction detection
 * [ ] Build **claim + evidence + source** model
 * [ ] Add claim-level **citation/provenance**
-* [ ] Add research/evidence **confidence scores**
-* [ ] Implement context selection / **context engineering**
-* [ ] Add RAG / hybrid retrieval
 
 ### Infrastructure
 
-* [ ] Stream agent responses/events to frontend
 * [ ] Add durable execution / **checkpointing**
 * [ ] Add retries + failure recovery
 * [ ] Add distributed tracing / observability
 * [ ] Add LLM **model routing**
-* [ ] Add token/cost tracking
-* [ ] Add caching
-* [ ] Add rate limiting
+
 
 ### Evaluation
 
@@ -135,12 +135,8 @@ uv run celery -A backend.celery_app worker --loglevel=info
 * [ ] Evaluate citation correctness
 * [ ] Evaluate research completeness/factuality
 * [ ] Track latency + cost per run
-* [ ] Add regression tests for agent workflows
 
 ### Advanced
 
-* [ ] Sandboxed code execution for charts/data analysis
-* [ ] Agent-generated diagrams
 * [ ] Editable reports → targeted re-research
 * [ ] Research artifacts/versioning
-* [ ] Experiment/prompt version tracking
