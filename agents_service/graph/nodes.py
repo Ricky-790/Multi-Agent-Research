@@ -10,6 +10,12 @@ from agents_service.agents import (
     get_subagent,
     write_section,
 )
+from agents_service.agents.synthesizer_agent import enrich_outline_with_diagrams
+from agents_service.graph.state import (
+    ResearchGraphState,
+    ResearchPhaseState,
+    SectionWriteState,
+)
 from agents_service.models import (
     Report,
     ReportOutline,
@@ -19,11 +25,6 @@ from agents_service.models import (
     TaskStatus,
 )
 from agents_service.pipeline.rate_limiting import run_with_retry
-from agents_service.graph.state import (
-    ResearchGraphState,
-    ResearchPhaseState,
-    SectionWriteState,
-)
 from backend.api.dto_models import PublishMessage
 
 logger = logging.getLogger(__name__)
@@ -208,6 +209,8 @@ async def synthesize_outline_node(
     outline = await run_with_retry(
         generate_outline, outline_agent, state["query"], state["task_results"]
     )
+    # Populate diagram data
+    outline = enrich_outline_with_diagrams(outline, state["task_results"])
     logger.info(f"Outline generated with {len(outline.sections)} sections")
 
     writer(

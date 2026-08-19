@@ -1,4 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
+from pydantic.json_schema import FieldSchema
+
+from agents_service.models.sub_agent_models import DiagramData
 
 
 class ReportSection(BaseModel):
@@ -13,9 +16,11 @@ class ReportSection(BaseModel):
     )
     relevant_task_ids: list[str] = Field(
         default_factory=list,
-        description="task_ids whose findings are relevant to this section. Can be empty for "
-        "sections like an introduction or conclusion that synthesize across everything rather "
-        "than drawing on one specific set of findings.",
+        description="task_ids whose findings are relevant to this section. Can be empty for sections like an introduction or conclusion that synthesize across everything rather than drawing on one specific set of findings.",
+    )
+    diagrams: list[DiagramData] = Field(
+        default_factory=list,
+        description="Diagram data collected from relevant task results. Populated after outline generation, NOT by the outline agent.",
     )
 
 
@@ -32,6 +37,7 @@ class ReportOutline(BaseModel):
                 f"Section order values must be 1..N with no gaps/duplicates, got {orders}"
             )
         return self
+
 
 class Report(BaseModel):
     title: str = Field(..., description="The report's title.")

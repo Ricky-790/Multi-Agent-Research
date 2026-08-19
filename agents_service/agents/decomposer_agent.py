@@ -38,3 +38,8 @@ async def create_research_plan(goal: str, categories: list[str]) -> ResearchPlan
 
     result = await decomposer_agent.run(prompt)
     return result.output
+
+
+import asyncio
+
+# asyncio.run(create_research_plan("Research btc vs sol", ["tech", "finance"]))
