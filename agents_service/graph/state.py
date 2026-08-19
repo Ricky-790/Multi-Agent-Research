@@ -7,6 +7,7 @@ from agents_service.models import (
     IntentClassification,
     Report,
     ReportOutline,
+    ReportSection,
     ResearchPlan,
     Task,
     TaskResult,
@@ -72,6 +73,6 @@ class SectionWriteState(TypedDict):
     """Input state for a single section writer node."""
     goal: str
     outline: ReportOutline
-    section: Any  # ReportSection
+    section: ReportSection
     results: dict[str, TaskResult]
     order: int

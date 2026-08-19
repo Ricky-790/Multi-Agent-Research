@@ -85,6 +85,20 @@ def _build_outline_summary(outline: ReportOutline) -> str:
     return "\n".join(lines)
 
 
+def enrich_outline_with_diagrams(
+    outline: ReportOutline,
+    results: dict[str, TaskResult],
+) -> ReportOutline:
+    for section in outline.sections:
+        diagrams = []
+        for task_id in section.relevant_task_ids:
+            result = results.get(task_id)
+            if result and result.diagram_data:
+                diagrams.append(result.diagram_data)
+        section.diagrams = diagrams
+    return outline
+
+
 async def generate_outline(
     outline_agent: Agent, goal: str, results: dict[str, TaskResult]
 ) -> ReportOutline:
@@ -101,6 +115,20 @@ async def write_section(
     section: ReportSection,
     results: dict[str, TaskResult],
 ) -> str:
+    # Parse outline for diagram & details
+    # decide name & path for image file
+    # Agent gives in md section: ![caption][image_name]
+    # replace image_name with file url
+    # Done
+    # Generate and upload all diagrams for this section
+    diagram_instructions = ""
+    for diagram_data in section.diagrams:
+        img_bytes = await generate_diagram(diagram_data) # Call llm -> get code -> execute in sbx
+        url = await upload_to_gcs(img_bytes)
+        diagram_instructions += (
+            f"\nEmbed this diagram after the paragraph that introduces it: "
+            f"![{diagram_data.caption}]({url})\n"
+        )
     findings_block = _build_findings_block(section.relevant_task_ids, results)
     outline_summary = _build_outline_summary(outline)
 

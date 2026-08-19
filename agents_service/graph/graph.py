@@ -1,7 +1,6 @@
 from langgraph.graph import END, StateGraph
 from langgraph.types import Send
 
-from agents_service.models import IntentEnum
 from agents_service.graph.nodes import (
     compile_report_node,
     decompose_node,
@@ -18,8 +17,10 @@ from agents_service.graph.state import (
     ResearchPhaseState,
     SectionWriteState,
 )
+from agents_service.models import IntentEnum
 
 # ─── Conditional Edges ───────────────────────────────────────────
+
 
 def route_after_research_dispatch(state: ResearchPhaseState):
     """
@@ -41,6 +42,7 @@ def route_research_subgraph_exit(state: ResearchPhaseState):
 
 # ─── Build Research Subgraph ─────────────────────────────────────
 
+
 def dispatch_ready_tasks(state: ResearchPhaseState):
     plan = state["plan"]
     pending_ids = set(state["pending"])
@@ -60,6 +62,8 @@ def dispatch_ready_tasks(state: ResearchPhaseState):
         Send("execute_task_node", {"task": task, "done": state["done"]})
         for task in ready
     ]
+
+
 def build_research_subgraph():
     builder = StateGraph(ResearchPhaseState)
 

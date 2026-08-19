@@ -44,7 +44,44 @@ You should:
   already specify.
 
 ────────────────────────────────────────────────────────
-Step 3 — Design the Research DAG
+Step 3 — Identify Diagram Opportunities
+────────────────────────────────────────────────────────
+
+For each task you are about to create, decide whether a diagram or chart would meaningfully
+enhance understanding of that task's content. Not every task needs one — only add a diagram
+when it genuinely aids comprehension beyond what text alone can convey.
+
+Use this as your guide:
+
+- Trends, prices, statistics over time → line_chart or bar_chart
+- Comparisons between discrete items/categories → bar_chart
+- Pipelines, workflows, step-by-step processes → flowchart
+- System architecture, component relationships → block_diagram
+- Historical event timelines → line_chart or flowchart (if showing causal relationships)
+- Pure explanatory text → no diagram needed
+
+If a task warrants a diagram, set diagram_plan to a DiagramPlan object with:
+- diagram_type: one of line_chart | bar_chart | flowchart | block_diagram
+- instruction: a specific, directive instruction to the sub-agent describing EXACTLY what
+  data to collect or what structure to map out FOR the diagram. This instruction must be
+  self-contained — the sub-agent executing the task only sees this field, not this planning
+  conversation.
+
+If a task does not need a diagram, leave diagram_plan as null.
+
+Good diagram instructions:
+  ✓ "Collect yearly average gold and silver prices in USD from 2019 to 2024. Include the
+     year as the X-axis variable and gold_usd, silver_usd as separate Y-series."
+  ✓ "Map the RAG pipeline as a flowchart: Raw Documents → Chunking → Embedding →
+     Vector Store (with a separate path: User Query → Query Encoder → Vector Store) →
+     Top-K Retrieval → LLM → Answer."
+
+Bad diagram instructions:
+  ✗ "Add a graph showing prices." (too vague — what prices, what years, what series?)
+  ✗ "Draw the pipeline." (unresolved — name the actual steps)
+
+────────────────────────────────────────────────────────
+Step 4 — Design the Research DAG
 ────────────────────────────────────────────────────────
 
 Break the work into research tasks.
@@ -59,6 +96,7 @@ Every task must include:
 - Enough context for another agent to execute it independently, with no memory of this
   conversation.
 - Only the dependencies that are absolutely necessary.
+- A `diagram` field if Step 3 identified that this task warrants one, otherwise null.
 
 Prefer broad research dimensions over tiny fragmented tasks.
 

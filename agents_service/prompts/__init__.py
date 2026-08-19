@@ -5,6 +5,7 @@ from .classifier_prompts import (
 from .decomposer_prompts import (
     DECOMPOSER_PROMPT_TEMPLATE,
 )
+from .diagram_prompts import DIAGRAM_AGENT_PROMPT, DIAGRAM_AGENT_SYSTEM_INSTRUCTIONS
 from .strategies import build_decomposer_instructions
 from .subagent_prompts import (
     DEPENDENCY_CONTEXT_TEMPLATE,
@@ -29,5 +30,6 @@ __all__ = [
     "OUTLINE_AGENT_INSTRUCTIONS",
     "OUTLINE_PROMPT_TEMPLATE",
     "SECTION_WRITER_INSTRUCTIONS",
-    "SECTION_WRITER_PROMPT_TEMPLATE"
+    "SECTION_WRITER_PROMPT_TEMPLATEDIAGRAM_AGENT_PROMPT",
+    "DIAGRAM_AGENT_SYSTEM_INSTRUCTIONS",
 ]
