@@ -10,6 +10,7 @@ logger = get_logger()
 # Shared across ALL Gemini calls in the pipeline
 gemini_rate_limiter = AsyncLimiter(max_rate=10, time_period=60)
 
+nvidia_rate_limiter = AsyncLimiter(max_rate=10, time_period=60)
 
 def extract_retry_delay(error: ModelHTTPError) -> float | None:
     try:
