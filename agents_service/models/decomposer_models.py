@@ -1,5 +1,5 @@
 import re
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -13,7 +13,7 @@ class TaskStatus(str, Enum):
     FAILED = "failed"
 
 
-class DiagramTypes(str, Enum):
+class DiagramTypes(StrEnum):
     LINE_CHART = "line_chart"
     BAR_CHART = "bar_chart"
     FLOW_CHART = "flow_chart"

@@ -4,8 +4,8 @@ from uuid import UUID
 
 from langgraph.types import StreamWriter
 
-from agents_service.models import IntentEnum, Report
 from agents_service.graph.graph import get_research_graph
+from agents_service.models import IntentEnum, Report
 from backend.api.dto_models import PublishMessage
 from backend.celery_app import celery_app, pipeline_resources
 from backend.db.models import RunStatus
@@ -96,7 +96,7 @@ async def run_pipeline(report_id: str) -> None:
             if phase is None or status is None:
                 raise ValueError("Invalid event data: missing phase or status")
             if phase == "researching" and status == "running":
-                logger.info(f"INSIDE UPDATE TASK: {data}")
+                # logger.info(f"INSIDE UPDATE TASK: {data}")
                 task_id = data.get("task_id")
                 task_status = data.get("task_status")
                 result = data.get("task_result", None)
@@ -120,6 +120,7 @@ async def run_pipeline(report_id: str) -> None:
         graph = get_research_graph()
 
         initial_state = {
+            "report_id": report_id,
             "query": query,
             "categories": categories or [],
             "classification": None,
@@ -145,7 +146,7 @@ async def run_pipeline(report_id: str) -> None:
                 if event.get("type") == "custom":
                     data = event.get("data")
                     await publish(data)
-                    logger.info(f"DATA : {data}")
+                    # logger.info(f"DATA : {data}")
                     await update_db(data)
                     await update_task_state(data)
                 elif event.get("type") == "values":

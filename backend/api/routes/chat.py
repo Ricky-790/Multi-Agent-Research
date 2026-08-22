@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents_service.agents import classify_query
 from agents_service.agents.classifier_agent import classify_query_stream
-from agents_service.models import IntentEnum
+from agents_service.models import IntentClassification, IntentEnum
 from backend.api.deps import AuthenticatedUser, get_current_user
 from backend.api.dto_models import ChatRequest, ChatResponse, NewChatResponse
 from backend.api.utils import db_messages_to_model_messages
@@ -26,12 +26,8 @@ async def send_message(
     user: AuthenticatedUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    # No conv_id -> create new conv
-    # Save message
-    # call llm
-    # stream response
     conversation_id = payload.conversation_id
-    model_message_history=None
+    model_message_history = None
     if conversation_id is None:
         conversation_id = await message_service.create_new_conversation(
             session=session, user_id=user.user_id, title=payload.message
@@ -81,22 +77,23 @@ async def send_message(
         "event": "starting_response_stream",
         "data": "",
     }
-    final_response = ""
+    final_output: IntentClassification | None = None
     async for chunk in classify_query_stream(
         query=payload.message, message_history=model_message_history
     ):
-        final_response = chunk
+        final_output = chunk
         yield {
             "event": "message_delta",
-            "data": chunk,
+            "data": chunk.response,
         }
+    if final_output is None:
+        raise RuntimeError("No output from classification agent")
     assistant_message = await message_service.add_message(
         session=session,
         conversation_id=conversation_id,
         role="Agent",
-        message_content=final_response,
+        message_content=final_output.response,
     )
-    # Ping streaming complete
     yield {
         "event": "message_complete",
         "data": json.dumps(
@@ -110,6 +107,11 @@ async def send_message(
             }
         ),
     }
+    if final_output.intent == IntentEnum.RESEARCH_TOPIC:
+        report = await reports_service.create_report(
+            session, user.user_id, payload.message, assistant_message.id
+        )
+        run_research_pipeline_task.delay(str(report.id))
     yield {
         "event": "done",
         "data": "",

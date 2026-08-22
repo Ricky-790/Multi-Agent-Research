@@ -28,7 +28,7 @@ def add_to_list(old: list, new: list) -> list:
 
 class ResearchGraphState(TypedDict):
     """Global state for the entire research runtime."""
-
+    report_id: str
     # Inputs
     query: str
     categories: list[str]
@@ -53,13 +53,14 @@ class ResearchGraphState(TypedDict):
     # Streaming / observability (accumulated for Redis pub/sub)
     stream_events: Annotated[list[dict], add_to_list]
 
+
 # Subgraph state for the research DAG executor
 class ResearchPhaseState(TypedDict):
     """State scoped to the research phase subgraph."""
 
     plan: ResearchPlan
     # Completed results
-    done: Annotated[dict[str, TaskResult], merge_dicts]
+    task_results: Annotated[dict[str, TaskResult], merge_dicts]
     # Task IDs still pending
     pending: list[str]
     # Task IDs completed in this batch (for reducer bookkeeping)
@@ -68,9 +69,11 @@ class ResearchPhaseState(TypedDict):
     error: str | None
     stream_events: Annotated[list[dict], add_to_list]
 
+
 # State for individual section writing
 class SectionWriteState(TypedDict):
     """Input state for a single section writer node."""
+
     goal: str
     outline: ReportOutline
     section: ReportSection

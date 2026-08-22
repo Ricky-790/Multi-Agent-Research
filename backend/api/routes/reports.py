@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from backend.api.deps import (
     AuthenticatedUser,
@@ -18,6 +19,7 @@ from backend.api.dto_models import (
     ReportStatusResponse,
     ReportSummary,
 )
+from backend.api.utils import attach_signed_url
 from backend.celery_app.redis_client import client
 from backend.db.models import RunStatus
 from backend.db.services.user_report_service import reports_service
@@ -39,13 +41,13 @@ async def get_report(
     session: AsyncSession = Depends(get_session),
 ) -> ReportResponse | ReportStatusResponse:
     report = await reports_service.get_report_by_id(session, report_id)
-    if report.user_id != user.user_id:
+    if report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Report '{report_id}' not found.",
         )
 
-    if report is None:
+    if report.user_id != user.user_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Report '{report_id}' not found.",
@@ -59,17 +61,23 @@ async def get_report(
         )
 
     if report.status == RunStatus.DONE:
-        return ReportResponse(
-            report_id=report.id,
-            goal=report.goal,
-            intent=report.intent,
-            categories=report.categories,
-            strategy_summary=report.strategy_summary,
-            title=report.report_title,
-            content=report.report_content,
-            created_at=report.created_at.isoformat(),
-            updated_at=report.updated_at.isoformat(),
-        )
+        try:
+            formatted_content: str = await attach_signed_url(
+                report.report_content if report.report_content else ""
+            )
+            return ReportResponse(
+                report_id=report.id,
+                goal=report.goal,
+                intent=report.intent,
+                categories=report.categories,
+                strategy_summary=report.strategy_summary,
+                title=report.report_title,
+                content=formatted_content,
+                created_at=report.created_at.isoformat(),
+                updated_at=report.updated_at.isoformat(),
+            )
+        except:
+            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR)
 
     # RunStatus.FAILED or any unexpected value
     raise HTTPException(

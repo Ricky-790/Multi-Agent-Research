@@ -101,8 +101,8 @@ uv run celery -A backend.celery_app worker --loglevel=info
 * [x] Migrate `agents_service` to **LangChain/LangGraph**
 * [x] Stream agent responses/events to frontend
 * [x] Implement **chat history / conversation memory**
-* [ ] Sandboxed code execution for charts/data analysis
-* [ ] Agent-generated diagrams
+* [x] Sandboxed code execution for charts/data analysis
+* [x] Agent-generated diagrams
 * [ ] Add caching
 * [ ] Add rate limiting
 
@@ -126,7 +126,7 @@ uv run celery -A backend.celery_app worker --loglevel=info
 * [ ] Add retries + failure recovery
 * [ ] Add distributed tracing / observability
 * [ ] Add LLM **model routing**
-
+* [ ] Serve images through your our backend, instead of cdn link in md
 
 ### Evaluation
 
