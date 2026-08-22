@@ -98,6 +98,6 @@ Section purpose: {section_description}
 
 Relevant findings:
 {findings_block}
-
+{diagram_instruction}
 Write this section's content now.
 """

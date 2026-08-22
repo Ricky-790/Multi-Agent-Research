@@ -6,6 +6,7 @@ from agents_service.graph.nodes import (
     decompose_node,
     dispatch_section_writers,
     execute_task_node,
+    generate_diagrams_node,
     research_dispatcher,
     research_gather_node,
     research_supervisor_node,
@@ -46,7 +47,7 @@ def route_research_subgraph_exit(state: ResearchPhaseState):
 def dispatch_ready_tasks(state: ResearchPhaseState):
     plan = state["plan"]
     pending_ids = set(state["pending"])
-    done_ids = set(state["done"].keys())
+    done_ids = set(state["task_results"].keys())
     tasks_by_id = {t.id: t for t in plan.tasks}
 
     ready = [
@@ -59,7 +60,7 @@ def dispatch_ready_tasks(state: ResearchPhaseState):
         return "__end__"
 
     return [
-        Send("execute_task_node", {"task": task, "done": state["done"]})
+        Send("execute_task_node", {"task": task, "task_results": state["task_results"]})
         for task in ready
     ]
 
@@ -105,8 +106,8 @@ def build_research_graph():
     # Add nodes
     # builder.add_node("classify", classify_node)
     builder.add_node("decompose", decompose_node)
-    builder.add_node("research_phase", research_supervisor_node)  # Entry to subgraph
     builder.add_node("synthesize_outline", synthesize_outline_node)
+    builder.add_node("generate_diagrams", generate_diagrams_node)
     builder.add_node("write_section_node", write_section_node)
     builder.add_node("compile_report", compile_report_node)
 
@@ -122,10 +123,11 @@ def build_research_graph():
 
     # Research subgraph -> outline
     builder.add_edge("research_subgraph", "synthesize_outline")
+    builder.add_edge("synthesize_outline", "generate_diagrams")
 
     # Outline -> parallel section writers via Send
     builder.add_conditional_edges(
-        "synthesize_outline",
+        "generate_diagrams",
         dispatch_section_writers,
         {"write_section_node": "write_section_node"},
     )

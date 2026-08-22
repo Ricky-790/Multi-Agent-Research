@@ -1,9 +1,16 @@
 import asyncio
+from enum import StrEnum
 
 from aiolimiter import AsyncLimiter
 from pydantic_ai.exceptions import ModelHTTPError
 
 from custom_logger import get_logger
+
+
+class Provider(StrEnum):
+    GOOGLE = "google"
+    NVIDIA = "nvidia"
+
 
 logger = get_logger()
 
@@ -11,6 +18,12 @@ logger = get_logger()
 gemini_rate_limiter = AsyncLimiter(max_rate=10, time_period=60)
 
 nvidia_rate_limiter = AsyncLimiter(max_rate=10, time_period=60)
+
+_rate_limiters = {
+    Provider.GOOGLE: gemini_rate_limiter,
+    Provider.NVIDIA: nvidia_rate_limiter,
+}
+
 
 def extract_retry_delay(error: ModelHTTPError) -> float | None:
     try:
@@ -23,24 +36,27 @@ def extract_retry_delay(error: ModelHTTPError) -> float | None:
     return None
 
 
-async def run_with_retry(coro_fn, *args, max_retries: int = 4, **kwargs):
-    """
-    Runs an async callable under the shared rate limiter, retrying on 429s using the
-    provider's suggested delay. coro_fn should be a no-arg-bound async function
-    (e.g. a partial, or call this with args/kwargs to pass through).
-    """
+async def run_with_retry(
+    coro_fn,
+    *args,
+    max_retries: int = 4,
+    provider: Provider = Provider.GOOGLE,
+    **kwargs,
+):
+    rate_limiter = _rate_limiters[provider]
     last_error: Exception | None = None
 
     for attempt in range(max_retries):
         try:
-            async with gemini_rate_limiter:
+            async with rate_limiter:
                 return await coro_fn(*args, **kwargs)
-        except ModelHTTPError as e:
+        except ModelHTTPError as e:  # Handle status_code 503 error
             last_error = e
             if e.status_code == 429 and attempt < max_retries - 1:
                 wait = extract_retry_delay(e) or 45
                 logger.warning(
-                    f"Rate limited (attempt {attempt + 1}/{max_retries}), retrying in {wait:.0f}s"
+                    f"[{provider}] Rate limited (attempt {attempt + 1}/{max_retries}),"
+                    f" retrying in {wait:.0f}s"
                 )
                 await asyncio.sleep(wait)
                 continue

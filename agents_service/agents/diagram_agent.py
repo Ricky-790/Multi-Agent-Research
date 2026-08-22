@@ -21,7 +21,9 @@ def get_diagram_agent() -> Agent:
     code_gen_model = OpenAIChatModel(
         model_name,
         provider=OpenAIProvider(
-            base_url="https://integrate.api.nvidia.com/v1/chat",
+            base_url=os.getenv(
+                "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
+            ),
             api_key=os.getenv("NVIDIA_API_KEY", ""),
         ),
     )
@@ -34,13 +36,26 @@ def get_diagram_agent() -> Agent:
 
 
 async def generate_diagram_code(
-    diagram_agent: Agent,
-    diagram_data: DiagramData,
-) -> DiagramAgentOutput:
-    prompt = DIAGRAM_AGENT_PROMPT.format(
-        diagram_type=diagram_data.diagram_type,
-        caption=diagram_data.caption,
-        data_block=build_data_block(diagram_data),
-    )
-    result = await diagram_agent.run(prompt)
-    return result.output
+    prompt: str,
+    diagram_agent: Agent | None = None,
+):
+    if not diagram_agent:
+        diagram_agent = get_diagram_agent()
+    return await diagram_agent.run(prompt)
+
+
+# model_name = os.getenv("CODE_GENERATION_MODEL", "minimaxai/minimax-m3")
+# code_gen_model = OpenAIChatModel(
+#     model_name,
+#     provider=OpenAIProvider(
+#         base_url=os.getenv(
+#             "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
+#         ),
+#         api_key=os.getenv("NVIDIA_API_KEY", ""),
+#     ),
+# )
+# code_gen_agent = Agent(
+#     code_gen_model,
+# )
+# result = code_gen_agent.run_sync("Hello")
+# print(result.output)

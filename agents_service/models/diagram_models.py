@@ -10,7 +10,7 @@ class DiagramAgentOutput(BaseModel):
     )
     output_filename: str = Field(
         ...,
-        description="The filename the script saves to, e.g. 'gold_silver_prices.png'. No path, just the filename.",
+        description="The filename the script saves to, e.g. 'gold_silver_prices' or 'timeline'. NO PATH, NO FILE EXTENSION, just the filename.",
     )
     notes: Optional[str] = Field(
         default=None,

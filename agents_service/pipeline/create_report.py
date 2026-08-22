@@ -17,7 +17,7 @@ async def generate_report(
     outline: ReportOutline = await run_with_retry(
         generate_outline, outline_agent, goal, results
     )
-    logger.info(f"Outline generated with {len(outline.sections)} sections")
+    # logger.info(f"Outline generated with {len(outline.sections)} sections")
 
     written_sections = []
     for section in sorted(outline.sections, key=lambda s: s.order):

@@ -1,4 +1,7 @@
+import asyncio
+import base64
 import logging
+import traceback
 
 from langgraph.types import Send, StreamWriter
 
@@ -10,6 +13,7 @@ from agents_service.agents import (
     get_subagent,
     write_section,
 )
+from agents_service.agents.diagram_agent import get_diagram_agent
 from agents_service.agents.synthesizer_agent import enrich_outline_with_diagrams
 from agents_service.graph.state import (
     ResearchGraphState,
@@ -19,15 +23,20 @@ from agents_service.graph.state import (
 from agents_service.models import (
     Report,
     ReportOutline,
+    ReportSection,
     ResearchPlan,
     TaskResult,
     TaskResultStatus,
     TaskStatus,
 )
+from agents_service.models.synthesizer_models import GeneratedDiagram
+from agents_service.pipeline.diagram_executor import execute_diagram
 from agents_service.pipeline.rate_limiting import run_with_retry
+from agents_service.pipeline.storage import upload_to_bucket
 from backend.api.dto_models import PublishMessage
+from custom_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 # ─── Node: Decompose (Graph Entry Point) ─────────────────────────
@@ -78,7 +87,7 @@ async def research_supervisor_node(
 
     return {
         "plan": plan,
-        "done": {},
+        "task_results": {},
         "pending": pending,
         "just_completed": [],
         "error": None,
@@ -107,14 +116,11 @@ async def execute_task_node(state: dict, writer: StreamWriter) -> dict:
     """
     from agents_service.agents.subagent import execute_task as run_subagent_task
 
-    print("INSIDE EXEC_TASK_NODE")
-
     task = state["task"]
-    done = state["done"]
+    done = state["task_results"]
     subagent = get_subagent()
 
     logger.info(f"Starting task {task.id}: {task.name}")
-    print("Before writer")
     writer(
         {
             "phase": "researching",
@@ -124,7 +130,6 @@ async def execute_task_node(state: dict, writer: StreamWriter) -> dict:
             "task_status": "running",
         }
     )
-    print("After writer")
 
     try:
         result = await run_with_retry(run_subagent_task, subagent, task, done)
@@ -163,7 +168,7 @@ async def execute_task_node(state: dict, writer: StreamWriter) -> dict:
         logger.info(f"Finished task {task.id} with status={result.status}")
 
     return {
-        "done": {task.id: result},
+        "task_results": {task.id: result},
         "just_completed": [task.id],
     }
 
@@ -199,6 +204,7 @@ async def synthesize_outline_node(
     state: ResearchGraphState, writer: StreamWriter
 ) -> dict:
     """Creates the report outline from research findings."""
+    logger.info(f"task_results at outline stage: {list(state['task_results'].keys())}")
     writer(
         {
             "phase": "synthesis",
@@ -210,7 +216,7 @@ async def synthesize_outline_node(
         generate_outline, outline_agent, state["query"], state["task_results"]
     )
     # Populate diagram data
-    outline = enrich_outline_with_diagrams(outline, state["task_results"])
+    # outline = enrich_outline_with_diagrams(outline, state["task_results"])
     logger.info(f"Outline generated with {len(outline.sections)} sections")
 
     writer(
@@ -221,6 +227,45 @@ async def synthesize_outline_node(
         }
     )
 
+    return {"report_outline": outline}
+
+
+# ─── Generate Diagram ──────────────────
+
+
+async def generate_diagrams_node(
+    state: ResearchGraphState, writer: StreamWriter
+) -> dict:
+    outline = state["report_outline"]
+
+    sections_with_diagrams = [s for s in outline.sections if s.diagrams]
+    logger.info(f"SECTION WITH DIAGRAMS: {sections_with_diagrams}")
+    if not sections_with_diagrams:
+        return {"report_outline": outline}
+
+    writer({"phase": "synthesis", "status": "running", "msg": "Generating diagrams"})
+
+    async def generate_for_section(section: ReportSection):
+        generated = []
+        report_id = state["report_id"]
+        for diagram_data in section.diagrams:
+            try:
+                png_bytes, file_name = await run_with_retry(
+                    execute_diagram,
+                    diagram_data,
+                    provider="nvidia",
+                )
+                url: str | None = await upload_to_bucket(
+                    f"{report_id}/{section.order}_{file_name}.png", png_bytes
+                )
+                diagram_data.url = url
+
+            except Exception as e:
+                logger.error(f"Diagram failed for section {section.order}: {e}")
+                logger.error(traceback.print_exc())
+                diagram_data.url = None
+
+    await asyncio.gather(*[generate_for_section(s) for s in sections_with_diagrams])
     return {"report_outline": outline}
 
 
