@@ -1,71 +1,50 @@
-import React, { useState, useEffect } from "react";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { AuthForm } from "./components/AuthForm";
-import { Sidebar } from "./components/Sidebar";
-import { ChatPage } from "./components/ChatPage";
-import { ReportPage } from "./components/ReportPage";
-import "./index.css";
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-const MainApp: React.FC = () => {
-  const { token } = useAuth();
-  const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
+import { AuthProvider } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
-  useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+import { LandingPage } from "./pages/LandingPage";
+import { SignupPage } from "./pages/SignupPage";
+import { LoginPage } from "./pages/LoginPage";
+import { ChatPage } from "./pages/ChatPage";
+import { ReportPage } from "./pages/ReportPage";
 
-  const navigate = (path: string) => {
-    window.history.pushState({}, "", path);
-    setCurrentPath(path);
-  };
-
-  // Auth routing check
-  if (!token) {
-    if (currentPath === "/signup") {
-      return <AuthForm mode="signup" onNavigate={navigate} />;
-    }
-    return <AuthForm mode="login" onNavigate={navigate} />;
-  }
-
-  // If logged in but on /login or /signup, redirect to /chat
-  if (currentPath === "/login" || currentPath === "/signup" || currentPath === "/") {
-    navigate("/chat");
-  }
-
-  // Extract reportId if on report page
-  let reportId: string | undefined = undefined;
-  if (currentPath.startsWith("/report/")) {
-    reportId = currentPath.split("/report/")[1];
-  }
-
-  return (
-    <div className="layout-container">
-      <Sidebar
-        currentReportId={reportId}
-        onNavigate={navigate}
-        activePath={currentPath}
-      />
-      <main className="main-content">
-        {reportId ? (
-          <ReportPage reportId={reportId} />
-        ) : (
-          <ChatPage onNavigate={navigate} />
-        )}
-      </main>
-    </div>
-  );
-};
-
-export function App() {
+export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <MainApp />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:conversationId"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/report/:reportId"
+            element={
+              <ProtectedRoute>
+                <ReportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
-}
-
-export default App;
+};
