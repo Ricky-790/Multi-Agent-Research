@@ -201,11 +201,20 @@ export const ChatPage: React.FC = () => {
             const eventName = envelope?.event ?? "";
             let payload: any = null;
             if (envelope) {
-              // The inner `data` is itself a JSON string we need to parse.
-              try {
-                payload = JSON.parse(envelope.data);
-              } catch {
-                payload = envelope.data;
+              // Inner `data` is usually a JSON object (e.g. {"message_id":
+              // "..."}) but may also be a JSON-encoded string in older event
+              // types. Try object first, then string, otherwise leave null.
+              const inner = envelope.data;
+              if (inner && typeof inner === "object") {
+                payload = inner;
+              } else if (typeof inner === "string") {
+                try {
+                  payload = JSON.parse(inner);
+                } catch {
+                  payload = inner;
+                }
+              } else {
+                payload = inner;
               }
             } else {
               payload = outer;
@@ -226,11 +235,11 @@ export const ChatPage: React.FC = () => {
                 const withoutOptimistic = prev.filter(
                   (m) => m.id !== optimisticId,
                 );
-                if (payload?.id) {
+                if (payload?.message_id || payload?.id) {
                   return [
                     ...withoutOptimistic,
                     {
-                      id: payload.id,
+                      id: payload.message_id ?? payload.id,
                       role: "User",
                       content: payload.content ?? text.trim(),
                       sequenceNo: payload.sequence_no ?? 0,
@@ -294,7 +303,7 @@ export const ChatPage: React.FC = () => {
                 const last = next[next.length - 1];
                 if (last && last.role === "Agent") {
                   next[next.length - 1] = {
-                    id: payload?.id ?? last.id,
+                    id: payload?.message_id ?? payload?.id ?? last.id,
                     role: "Agent",
                     content: payload?.content ?? last.content,
                     streaming: false,
@@ -303,7 +312,7 @@ export const ChatPage: React.FC = () => {
                   };
                 } else if (payload) {
                   next.push({
-                    id: payload.id,
+                    id: payload.message_id ?? payload.id,
                     role: "Agent",
                     content: payload.content ?? "",
                     sequenceNo: payload.sequence_no ?? 0,

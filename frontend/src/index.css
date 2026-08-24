@@ -140,3 +140,41 @@ body {
   border: 1px solid #323539;
   margin: 1.5em 0;
 }
+
+/* Scrollbars — blend in with the dark surface palette instead of the
+   default white/grey browser bars. Targets WebKit/Blink and Firefox. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4f4536 #191c20;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #191c20;
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #4f4536;
+  border-radius: 8px;
+  border: 2px solid #191c20;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #6b5f4d;
+  border: 2px solid #191c20;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: #9c8f7d;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #191c20;
+}
