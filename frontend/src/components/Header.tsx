@@ -3,13 +3,16 @@ import { Link } from "react-router-dom";
 import { SpectatorLogo } from "./SpectatorLogo";
 import { useAuth } from "../context/AuthContext";
 
-// Header used on public marketing/auth pages.
+// Header used on public marketing/auth pages. When the viewer is signed in we
+// swap the brand target to /chat so clicking the logo doesn't bounce them
+// through the now-restricted landing page.
 export const Header: React.FC = () => {
   const { isAuthenticated, logout } = useAuth();
+  const brandTo = isAuthenticated ? "/chat" : "/";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-surface border-b border-outline-variant px-margin-mobile md:px-margin-desktop py-4 flex justify-between items-center">
-      <Link to="/" className="flex items-center gap-3">
+      <Link to={brandTo} className="flex items-center gap-3">
         <SpectatorLogo className="h-8 w-auto" />
       </Link>
       <div className="flex items-center gap-6">

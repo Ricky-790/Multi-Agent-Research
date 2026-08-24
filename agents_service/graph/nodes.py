@@ -239,7 +239,7 @@ async def generate_diagrams_node(
     outline = state["report_outline"]
 
     sections_with_diagrams = [s for s in outline.sections if s.diagrams]
-    logger.info(f"SECTION WITH DIAGRAMS: {sections_with_diagrams}")
+    # logger.info(f"SECTION WITH DIAGRAMS: {sections_with_diagrams}")
     if not sections_with_diagrams:
         return {"report_outline": outline}
 

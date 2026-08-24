@@ -9,7 +9,14 @@ from agents_service.agents import classify_query
 from agents_service.agents.classifier_agent import classify_query_stream
 from agents_service.models import IntentClassification, IntentEnum
 from backend.api.deps import AuthenticatedUser, get_current_user
-from backend.api.dto_models import ChatRequest, ChatResponse, NewChatResponse
+from backend.api.dto_models import (
+    ChatHistory,
+    ChatItem,
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
+    NewChatResponse,
+)
 from backend.api.utils import db_messages_to_model_messages
 from backend.celery_app.tasks import run_research_pipeline_task
 from backend.db.services import message_service, reports_service
@@ -62,15 +69,12 @@ async def send_message(
         }
     yield {
         "event": "user_message_created",
-        "data": json.dumps(
-            {
-                "id": str(user_message.id),
-                "conversation_id": str(conversation_id),
-                "role": user_message.role,
-                "content": user_message.message_content,
-                "sequence_no": user_message.sequence_no,
-                "created_at": user_message.created_at.isoformat(),
-            }
+        "data": ChatMessage(
+            message_id=str(user_message.id),
+            role=user_message.role,
+            content=user_message.message_content,
+            sequence_no=user_message.sequence_no,
+            created_at=user_message.created_at,
         ),
     }
     yield {
@@ -96,15 +100,12 @@ async def send_message(
     )
     yield {
         "event": "message_complete",
-        "data": json.dumps(
-            {
-                "id": str(assistant_message.id),
-                "conversation_id": str(conversation_id),
-                "role": assistant_message.role,
-                "content": assistant_message.message_content,
-                "sequence_no": assistant_message.sequence_no,
-                "created_at": assistant_message.created_at.isoformat(),
-            }
+        "data": ChatMessage(
+            message_id=str(assistant_message.id),
+            role=assistant_message.role,
+            content=assistant_message.message_content,
+            sequence_no=assistant_message.sequence_no,
+            created_at=assistant_message.created_at,
         ),
     }
     if final_output.intent == IntentEnum.RESEARCH_TOPIC:
@@ -112,7 +113,46 @@ async def send_message(
             session, user.user_id, payload.message, assistant_message.id
         )
         run_research_pipeline_task.delay(str(report.id))
+        yield {
+            "event": "Starting research",
+            "data": json.dumps(
+                {"report_id": str(report.id), "title": report.report_title}
+            ),
+        }
     yield {
         "event": "done",
         "data": "",
     }
+
+
+@router.get("/chat/{conversation_id}", response_model=ChatHistory)
+async def get_conversation_messages(
+    conversation_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    user: AuthenticatedUser = Depends(get_current_user),
+):
+    messages = await message_service.get_conversation_messages(
+        session=session, conversation_id=conversation_id, user_id=user.user_id
+    )
+    return ChatHistory(
+        messages=[
+            ChatMessage(
+                message_id=str(m.id),
+                role=m.role,
+                content=m.message_content,
+                sequence_no=m.sequence_no,
+                created_at=m.created_at,
+            )
+            for m in messages
+        ]
+    )
+
+
+@router.get("/chats/all", response_model=list[ChatItem])
+async def get_all_chats(
+    session: AsyncSession = Depends(get_session),
+    user: AuthenticatedUser = Depends(get_current_user),
+):
+    chats = await message_service.get_all_conversations(session=session, user_id=user.user_id)
+    # print(chats)
+    return [ChatItem(conversation_id = str(c.id), title=c.title, updated_at=c.updated_at) for c in chats]

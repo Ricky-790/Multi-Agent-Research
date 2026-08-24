@@ -69,7 +69,7 @@ export const ReportPage: React.FC = () => {
     async (isWebSocketDriven = false) => {
       if (!reportId || !token) return;
       try {
-        const data = await apiRequest(`/reports/report/${reportId}`, { token });
+        const data = await apiRequest(`/reports/${reportId}`, { token });
         const hasContent = data && Object.prototype.hasOwnProperty.call(data, "content");
 
         if (!hasContent) {

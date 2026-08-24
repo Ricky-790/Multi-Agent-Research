@@ -29,9 +29,30 @@ router = APIRouter()
 # _report_service = UserReportService()
 connection_manager = ConnectionManager()
 
+@router.get("/all", response_model=ReportsListResponse)
+async def get_user_reports(
+    user: AuthenticatedUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+    limit: int = 20,
+    offset: int = 0,
+) -> ReportsListResponse:
+    """
+    Return a paginated list of report summaries (id + title) for the
+    authenticated user, ordered newest first.
+    """
+    rows = await reports_service.get_reports_by_user(
+        session, user.user_id, limit=limit, offset=offset
+    )
+    return ReportsListResponse(
+        reports=[
+            ReportSummary(report_id=row[0], title=row[1], status=row[2]) for row in rows
+        ],
+        limit=limit,
+        offset=offset,
+    )
 
 @router.get(
-    "/report/{report_id}",
+    "/{report_id}",
     response_model=ReportResponse | ReportStatusResponse,
     status_code=status.HTTP_200_OK,
 )
@@ -86,27 +107,7 @@ async def get_report(
     )
 
 
-@router.get("/reports", response_model=ReportsListResponse)
-async def get_user_reports(
-    user: AuthenticatedUser = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-    limit: int = 20,
-    offset: int = 0,
-) -> ReportsListResponse:
-    """
-    Return a paginated list of report summaries (id + title) for the
-    authenticated user, ordered newest first.
-    """
-    rows = await reports_service.get_reports_by_user(
-        session, user.user_id, limit=limit, offset=offset
-    )
-    return ReportsListResponse(
-        reports=[
-            ReportSummary(report_id=row[0], title=row[1], status=row[3]) for row in rows
-        ],
-        limit=limit,
-        offset=offset,
-    )
+
 
 
 @router.websocket(

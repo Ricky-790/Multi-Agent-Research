@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api";
-import { StatusDot } from "./StatusDot";
 
-interface ReportSummary {
-  report_id: string;
-  title: string | null;
-  status: string | null;
+interface ChatSummary {
+  conversation_id: string;
+  title: string;
+  updated_at: string;
 }
 
 interface SidebarProps {
@@ -22,20 +21,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { token, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
     setLoading(true);
-    apiRequest("/reports/reports", { token })
+    apiRequest("/chats/all", { token })
       .then((data) => {
         if (cancelled) return;
-        setReports(Array.isArray(data?.reports) ? data.reports : []);
+        setChats(Array.isArray(data) ? data : []);
       })
       .catch(() => {
-        if (!cancelled) setReports([]);
+        if (!cancelled) setChats([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -55,10 +54,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     navigate("/login");
   };
 
-  const isOnReport =
-    location.pathname.startsWith("/report/") ||
-    location.pathname === "/chat" ||
-    location.pathname === "/chat/";
+  const handleLibrary = () => {
+    onCloseMobile();
+    navigate("/reports");
+  };
+
+  const isOnChat =
+    location.pathname.startsWith("/chat") ||
+    location.pathname.startsWith("/report/");
+  const isOnLibrary = location.pathname === "/reports";
 
   return (
     <>
@@ -102,33 +106,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <p className="px-4 py-2 text-xs font-medium text-outline uppercase tracking-widest mb-1">
             Navigation
           </p>
-          <NavItem icon="book" label="Library" onClick={onCloseMobile} />
+          <NavItem
+            icon="book"
+            label="Library"
+            active={isOnLibrary}
+            onClick={handleLibrary}
+          />
 
-          {/* Recent Reports list */}
+          {/* Recent Chats list */}
           <div className="mt-8 mb-2">
             <p className="px-4 py-2 text-xs font-medium text-outline uppercase tracking-widest">
-              Recent Reports
+              Recent Chats
             </p>
             {loading ? (
               <p className="px-4 py-2 font-label-sm text-label-sm text-on-surface-variant opacity-60">
                 Loading…
               </p>
-            ) : reports.length === 0 ? (
+            ) : chats.length === 0 ? (
               <p className="px-4 py-2 font-label-sm text-label-sm text-on-surface-variant opacity-60">
-                No reports yet.
+                No chats yet.
               </p>
             ) : (
-              reports.map((r) => (
+              chats.map((c) => (
                 <Link
-                  key={r.report_id}
-                  to={`/report/${r.report_id}`}
+                  key={c.conversation_id}
+                  to={`/chat/${c.conversation_id}`}
                   onClick={onCloseMobile}
-                  className="px-4 py-2 flex items-center gap-3 text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-low rounded transition-colors duration-200"
+                  className={`px-4 py-2 flex items-center gap-3 font-label-sm text-label-sm hover:bg-surface-container-low rounded transition-colors duration-200 ${
+                    location.pathname === `/chat/${c.conversation_id}`
+                      ? "bg-surface-container-low text-primary"
+                      : "text-on-surface-variant"
+                  }`}
                 >
-                  <StatusDot status={r.status} />
-                  <span className="truncate">
-                    {r.title || "Untitled report"}
+                  <span className="material-symbols-outlined text-[18px] text-outline shrink-0">
+                    chat_bubble
                   </span>
+                  <span className="truncate">{c.title || "Untitled chat"}</span>
                 </Link>
               ))
             )}
@@ -137,8 +150,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer Navigation */}
         <div className="p-4 border-t border-outline-variant bg-surface">
-          <NavItem icon="settings" label="Settings" onClick={onCloseMobile} />
-          <NavItem icon="help" label="Support" onClick={onCloseMobile} />
+          {/*<NavItem icon="settings" label="Settings" onClick={onCloseMobile} />*/}
+          {/*<NavItem icon="help" label="Support" onClick={onCloseMobile} />*/}
           <button
             onClick={handleLogout}
             className="w-full text-left flex items-center gap-3 px-4 py-2 rounded hover:bg-surface-container-low transition-colors duration-200 text-on-surface-variant font-label-sm text-label-sm group"
