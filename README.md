@@ -100,6 +100,83 @@ uv run celery -A backend.celery_app worker --loglevel=info
 
 ## Frontend Setup
 
+### Prerequisites
+
+- **Node.js** (v18+)
+- **npm** or **yarn**
+
+### 1. Navigate to the Frontend Directory
+
+```bash
+cd frontend
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Environment Configuration
+
+```bash
+cp .env.example .env
+```
+
+Configure the following in `.env`:
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000
+```
+
+### 4. Start the Development Server
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`.
+
+---
+
+## Supabase Setup
+
+### 1. Create a Supabase Project
+
+Go to [supabase.com](https://supabase.com) and create a new project.
+
+### 2. Create a Storage Bucket
+
+1. Navigate to **Storage** in the Supabase dashboard.
+2. Click **New Bucket**, name it (e.g. `diagrams_bucket`).
+3. Keep the bucket **private** — the backend accesses it via the service role key, and the frontend receives short-lived signed URLs.
+
+### 3. Configure Bucket Policies
+
+Under **Storage → Policies**, add the following policy to allow the backend service role full access:
+
+```sql
+-- Allow service role to upload, read, and delete
+CREATE POLICY "Service role full access"
+ON storage.objects
+FOR ALL
+TO service_role
+USING (bucket_id = 'diagrams_bucket')
+WITH CHECK (bucket_id = 'diagrams_bucket');
+```
+
+Authenticated users do not need direct bucket access — signed URLs handle reads.
+
+### 4. Add Supabase Credentials to `.env`
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+SUPABASE_DIAGRAM_BUCKET=diagrams_bucket
+```
+
+Use the **service role key** (not the anon key) in the backend — it bypasses RLS and is required for uploads. Never expose this key to the frontend.
 ---
 
 ## Features to add (V2 Checklist)
