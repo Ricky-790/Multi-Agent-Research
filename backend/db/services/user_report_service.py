@@ -13,7 +13,7 @@ class UserReportService:
     # --- writes ---
 
     async def create_report(
-        self, session: AsyncSession, user_id: UUID, goal: str
+        self, session: AsyncSession, user_id: UUID, goal: str, message_id: UUID
     ) -> UserReport:
         """Create a new UserReport with PENDING status and return it."""
         try:
@@ -21,6 +21,7 @@ class UserReportService:
                 user_id=user_id,
                 goal=goal,
                 status=RunStatus.PENDING,
+                message_id=message_id,
             )
             session.add(report)
             await session.commit()

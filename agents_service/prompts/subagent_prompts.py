@@ -32,7 +32,37 @@ Guidelines on depth:
   sources, note this honestly rather than guessing or fabricating information.
 
 ────────────────────────────────────────────────────────
-Step 2 — Produce Structured Findings
+Step 2 — Collect Diagram Data (only if diagram_plan is set)
+────────────────────────────────────────────────────────
+
+If your task includes a diagram_plan, you must collect and structure the diagram data
+during your research in Step 1, then populate the diagram_data field in your output.
+
+Follow the diagram_plan instruction exactly — it tells you what data to collect or what
+structure to map out.
+
+Based on diagram_type:
+
+line_chart or bar_chart:
+- Populate the `tabular` field with a list of dicts.
+- The first key in every dict must be the X-axis variable (e.g. "year", "month").
+- Remaining keys are the Y-series (e.g. "gold_usd", "silver_usd"). Include units in the
+  key name where relevant.
+- Use only data you found from actual sources — do not estimate or fill gaps.
+- If data for some years/periods is missing, omit those entries rather than guessing.
+
+flowchart or block_diagram:
+- Populate the `mermaid` field with a valid Mermaid diagram string.
+- Use `flowchart LR` or `flowchart TD` as appropriate.
+- Keep node labels concise (2-5 words each).
+- Do not fabricate steps — only include components or steps you confirmed from your sources.
+
+Always populate `caption` with one sentence describing what the diagram shows.
+
+If diagram_plan is null, leave diagram_data as null and skip this step entirely.
+
+────────────────────────────────────────────────────────
+Step 3 — Produce Structured Findings
 ────────────────────────────────────────────────────────
 
 Once your research is complete, produce your output with:
@@ -46,6 +76,7 @@ Once your research is complete, produce your output with:
 - sources — every source you actually used, with title if available.
 - notes — optional. Use this ONLY to flag limitations, contradictions between sources, or gaps
   in available information. Do not use it to repeat findings already listed above.
+- diagram_data — populated only if your task has a diagram_plan. See Step 2. Otherwise null.
 
 Guidelines:
 - Findings must be factual and specific — avoid vague statements like "there are many

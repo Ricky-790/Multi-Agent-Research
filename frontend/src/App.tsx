@@ -1,71 +1,88 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { AuthForm } from "./components/AuthForm";
-import { Sidebar } from "./components/Sidebar";
-import { ChatPage } from "./components/ChatPage";
-import { ReportPage } from "./components/ReportPage";
-import "./index.css";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { PublicOnlyRoute } from "./components/PublicOnlyRoute";
 
-const MainApp: React.FC = () => {
-  const { token } = useAuth();
-  const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
+import { LandingPage } from "./pages/LandingPage";
+import { SignupPage } from "./pages/SignupPage";
+import { LoginPage } from "./pages/LoginPage";
+import { ChatPage } from "./pages/ChatPage";
+import { ReportPage } from "./pages/ReportPage";
+import { ReportsListPage } from "./pages/ReportsListPage";
 
-  useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  const navigate = (path: string) => {
-    window.history.pushState({}, "", path);
-    setCurrentPath(path);
-  };
-
-  // Auth routing check
-  if (!token) {
-    if (currentPath === "/signup") {
-      return <AuthForm mode="signup" onNavigate={navigate} />;
-    }
-    return <AuthForm mode="login" onNavigate={navigate} />;
-  }
-
-  // If logged in but on /login or /signup, redirect to /chat
-  if (currentPath === "/login" || currentPath === "/signup" || currentPath === "/") {
-    navigate("/chat");
-  }
-
-  // Extract reportId if on report page
-  let reportId: string | undefined = undefined;
-  if (currentPath.startsWith("/report/")) {
-    reportId = currentPath.split("/report/")[1];
-  }
-
-  return (
-    <div className="layout-container">
-      <Sidebar
-        currentReportId={reportId}
-        onNavigate={navigate}
-        activePath={currentPath}
-      />
-      <main className="main-content">
-        {reportId ? (
-          <ReportPage reportId={reportId} />
-        ) : (
-          <ChatPage onNavigate={navigate} />
-        )}
-      </main>
-    </div>
-  );
+// Catch-all that respects auth state: signed-in users land on /chat so the
+// landing page is never shown to them; everyone else goes to the landing page.
+const RootRedirect: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  return <Navigate to={isAuthenticated ? "/chat" : "/"} replace />;
 };
 
-export function App() {
+export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <MainApp />
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <PublicOnlyRoute>
+                <LandingPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <PublicOnlyRoute>
+                <SignupPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <LoginPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:conversationId"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <ReportsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/report/:reportId"
+            element={
+              <ProtectedRoute>
+                <ReportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<RootRedirect />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
-}
-
-export default App;
+};

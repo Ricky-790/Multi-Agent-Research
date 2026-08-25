@@ -12,15 +12,19 @@ from agents_service.models import (
     TaskResult,
     TaskResultStatus,
 )
+from agents_service.models.synthesizer_models import GeneratedDiagram
 from agents_service.prompts import (
     OUTLINE_AGENT_INSTRUCTIONS,
     OUTLINE_PROMPT_TEMPLATE,
     SECTION_WRITER_INSTRUCTIONS,
     SECTION_WRITER_PROMPT_TEMPLATE,
 )
+from custom_logger import get_logger
 
 outline_model_name = os.getenv("OUTLINE_MODEL", "gemini-3.1-flash-lite")
 section_model_name = os.getenv("SECTION_WRITER_MODEL", "gemini-3.1-flash-lite")
+
+logger = get_logger()
 
 
 def get_outline_agent():
@@ -85,13 +89,66 @@ def _build_outline_summary(outline: ReportOutline) -> str:
     return "\n".join(lines)
 
 
+def _build_diagram_instruction(section: ReportSection) -> str:
+    if not section.diagrams:
+        return ""
+
+    successful = [d for d in section.diagrams if d.url is not None]
+    failed = [d for d in section.diagrams if d.url is None]
+
+    parts = []
+
+    if successful:
+        embeds = "\n".join(f"![{d.caption}]({d.url})" for d in successful)
+        parts.append(
+            f"The following diagram(s) have been generated for this section. "
+            f"Embed each one naturally after the paragraph that introduces what it visualizes:\n"
+            f"{embeds}"
+        )
+
+    if failed:
+        failed_captions = "\n".join(f"- {d.caption}" for d in failed)
+        parts.append(
+            f"The following diagram(s) could not be generated due to a technical error. "
+            f"For each one, write a descriptive paragraph in its place that conveys the "
+            f"same information the diagram would have shown:\n"
+            f"{failed_captions}"
+        )
+
+    return "\n\n" + "\n\n".join(parts) + "\n"
+
+
+def enrich_outline_with_diagrams(
+    outline: ReportOutline,
+    results: dict[str, TaskResult],
+) -> ReportOutline:
+    logger.info(f"Available task_ids in results: {list(results.keys())}")
+    for section in outline.sections:
+        logger.info(
+            f"Section '{section.title}' relevant_task_ids: {section.relevant_task_ids}"
+        )
+        diagrams = []
+        for task_id in section.relevant_task_ids:
+            result = results.get(task_id)
+            logger.info(
+                f"  task_id={task_id} -> result found: {result is not None}, has diagram: {result.diagram_data is not None if result else 'N/A'}"
+            )
+            if result and result.diagram_data:
+                diagrams.append(
+                    GeneratedDiagram(**result.diagram_data.model_dump(), url=None)
+                )
+        section.diagrams = diagrams
+    return outline
+
+
 async def generate_outline(
     outline_agent: Agent, goal: str, results: dict[str, TaskResult]
 ) -> ReportOutline:
     summaries_block = _build_summaries_block(results)
     prompt = OUTLINE_PROMPT_TEMPLATE.format(goal=goal, summaries_block=summaries_block)
     result = await outline_agent.run(prompt)
-    return result.output
+    outline = enrich_outline_with_diagrams(outline=result.output, results=results)
+    return outline
 
 
 async def write_section(
@@ -103,6 +160,7 @@ async def write_section(
 ) -> str:
     findings_block = _build_findings_block(section.relevant_task_ids, results)
     outline_summary = _build_outline_summary(outline)
+    diagram_instruction = _build_diagram_instruction(section)
 
     prompt = SECTION_WRITER_PROMPT_TEMPLATE.format(
         goal=goal,
@@ -110,6 +168,7 @@ async def write_section(
         section_title=section.title,
         section_description=section.description,
         findings_block=findings_block,
+        diagram_instruction=diagram_instruction,
     )
     result = await section_writer_agent.run(prompt)
     return result.output

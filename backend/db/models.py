@@ -76,7 +76,9 @@ class UserReport(Base):
         nullable=False,
         index=True,
     )
-
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("messages.id"), nullable=False, unique=True
+    )
     goal: Mapped[str] = mapped_column(Text, nullable=False)
     intent: Mapped[str | None] = mapped_column(
         SAEnum(*[e.value for e in IntentEnum], name="intent_enum"), nullable=True
@@ -104,6 +106,9 @@ class UserReport(Base):
     user: Mapped["User"] = relationship(back_populates="reports")
     tasks: Mapped[list["Task"]] = relationship(
         back_populates="report", cascade="all, delete-orphan"
+    )
+    message: Mapped["Messages"] = relationship(
+        back_populates="report",
     )
 
 
@@ -141,7 +146,9 @@ class Task(Base):
 
 class Conversations(Base):
     __tablename__ = "conversations"
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
@@ -163,7 +170,9 @@ class Conversations(Base):
 
 class Messages(Base):
     __tablename__ = "messages"
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("conversations.id", ondelete="CASCADE"),
@@ -190,4 +199,7 @@ class Messages(Base):
             "sequence_no",
             name="uq_message_conversation_sequence",
         ),
+    )
+    report: Mapped["UserReport"] = relationship(
+        back_populates="message",
     )

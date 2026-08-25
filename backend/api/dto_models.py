@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 from uuid import UUID
-
+from datetime import datetime
 from fastapi import WebSocket
 from pydantic import BaseModel
 
@@ -22,6 +22,24 @@ class ChatResponse(BaseModel):
     message: str
     intent: IntentEnum
     report_id: UUID | None = None
+
+
+class ChatMessage(BaseModel):
+    message_id: str
+    role: str
+    content: str
+    sequence_no: int
+    created_at: datetime
+
+
+class ChatHistory(BaseModel):
+    messages: list[ChatMessage]
+
+
+class ChatItem(BaseModel):
+    conversation_id: str
+    title: str
+    updated_at: datetime
 
 
 # Reports route

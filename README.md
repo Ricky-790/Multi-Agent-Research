@@ -52,6 +52,7 @@ docker run -d \
 ```
 
 ### 3. Environment Configuration
+
 Copy the sample .env and configure your API keys:
 
 ```bash
@@ -59,6 +60,7 @@ cp .env.example .env
 ```
 
 ### 4. Python Environment & Dependency Installation
+
 Use `uv` to sync and install the dependencies:
 
 ```bash
@@ -67,6 +69,7 @@ uv sync
 ```
 
 ### 5. Run Database Migrations
+
 Apply Alembic migrations to set up the PostgreSQL database schema:
 
 ```bash
@@ -78,6 +81,7 @@ uv run alembic upgrade head
 ## Running the Services
 
 ### Start the Backend API Server
+
 Run the FastAPI application with Uvicorn:
 
 ```bash
@@ -85,6 +89,7 @@ uv run uvicorn backend.main:app --reload --port 8000
 ```
 
 ### Start the Celery Worker
+
 Run the background research pipeline tasks in a different terminal using Celery:
 
 ```bash
@@ -98,45 +103,50 @@ uv run celery -A backend.celery_app worker --loglevel=info
 ---
 
 ## Features to add (V2 Checklist)
-* [x] Migrate `agents_service` to **LangChain/LangGraph**
-* [x] Stream agent responses/events to frontend
-* [x] Implement **chat history / conversation memory**
-* [ ] Sandboxed code execution for charts/data analysis
-* [ ] Agent-generated diagrams
-* [ ] Add caching
-* [ ] Add rate limiting
+
+- [x] Migrate `agents_service` to **LangChain/LangGraph**
+- [x] Stream agent responses/events to frontend
+- [x] Implement **chat history / conversation memory**
+- [x] Sandboxed code execution for charts/data analysis
+- [x] Agent-generated diagrams
+- [ ] Add caching
+- [ ] Add rate limiting
 
 ## V3 Checklist
 
 ### LLM / Agent workflow
 
-* [ ] Add **research replanning** when evidence is insufficient
-* [ ] Implement conditional routing / adaptive research
-* [ ] Add **human-in-the-loop** interruption/resume
+- [ ] Add **research replanning** when evidence is insufficient
+- [ ] Implement conditional routing / adaptive research
+- [ ] Add **human-in-the-loop** interruption/resume
 
 ### Research quality
 
-* [ ] Add contradiction detection
-* [ ] Build **claim + evidence + source** model
-* [ ] Add claim-level **citation/provenance**
+- [ ] Add contradiction detection
+- [ ] Build **claim + evidence + source** model
+- [ ] Add claim-level **citation/provenance**
 
 ### Infrastructure
 
-* [ ] Add durable execution / **checkpointing**
-* [ ] Add retries + failure recovery
-* [ ] Add distributed tracing / observability
-* [ ] Add LLM **model routing**
-
+- [ ] Add durable execution / **checkpointing**
+- [ ] Add retries + failure recovery
+- [ ] Add distributed tracing / observability
+- [ ] Add LLM **model routing**
+- [ ] Serve images through your our backend, instead of cdn link in md
 
 ### Evaluation
 
-* [ ] Create research evaluation dataset
-* [ ] Implement LLM/agent **evals**
-* [ ] Evaluate citation correctness
-* [ ] Evaluate research completeness/factuality
-* [ ] Track latency + cost per run
+- [ ] Create research evaluation dataset
+- [ ] Combine grader types.
+- [ ] Groundedness checks verify that claims are supported by retrieved sources.
+- [ ] Coverage checks define key facts a good answer must include.
+- [ ] Source quality checks confirm the consulted sources are authoritative, rather than simply the first retrieved
+
+* [ ] Build a llm based rubric.
+
+- [ ] Track latency + cost per run
 
 ### Advanced
 
-* [ ] Editable reports → targeted re-research
-* [ ] Research artifacts/versioning
+- [ ] Editable reports → targeted re-research
+- [ ] Research artifacts/versioning
