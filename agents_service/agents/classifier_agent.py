@@ -55,7 +55,7 @@ async def classify_query_stream(
     query: str,
     message_history: list[ModelMessage] | None = None,
     classifier_agent: Agent | None = None,
-) -> AsyncIterable[str]:
+) -> AsyncIterable[str] | IntentClassification:
     if classifier_agent is None:
         classifier_agent = get_classifier_agent()
     prompt = CLASSIFIER_PROMPT_TEMPLATE.format(query=query)
@@ -63,17 +63,4 @@ async def classify_query_stream(
         prompt, message_history=message_history
     ) as result:
         async for message in result.stream_output():
-            yield message.response
-
-
-# async def main():
-
-#     await classify_query_stream(
-#         "Create a ETH vs BTC vs SOL report focusing on all aspects, financial and technical"
-#     )
-
-
-# if __name__ == "__main__":
-#     import asyncio
-
-#     asyncio.run(main())
+            yield message

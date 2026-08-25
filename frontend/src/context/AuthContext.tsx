@@ -1,67 +1,53 @@
-import React, { createContext, useContext, useState } from "react";
-import axios, { type AxiosInstance } from "axios";
+import React, { createContext, useContext, useState, useCallback } from "react";
 
-const API_BASE = "http://localhost:8000";
+const TOKEN_STORAGE_KEY = "access_token";
 
 interface AuthContextType {
   token: string | null;
   login: (token: string) => void;
   logout: () => void;
-  api: AxiosInstance;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem("access_token"));
-
-  const login = (newToken: string) => {
-    localStorage.setItem("access_token", newToken);
-    setToken(newToken);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("access_token");
-    setToken(null);
-  };
-
-  const api = axios.create({
-    baseURL: API_BASE,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  // Attach token interceptor dynamically
-  api.interceptors.request.use((config) => {
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-
-  // Handle 401 unauthenticated response
-  api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response && error.response.status === 401) {
-        logout();
-      }
-      return Promise.reject(error);
-    }
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [token, setToken] = useState<string | null>(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem(TOKEN_STORAGE_KEY)
+      : null,
   );
 
+  const login = useCallback((newToken: string) => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+    setToken(newToken);
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    setToken(null);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ token, login, logout, api }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        login,
+        logout,
+        isAuthenticated: token !== null,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
+export const useAuth = (): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context;
+  return ctx;
 };

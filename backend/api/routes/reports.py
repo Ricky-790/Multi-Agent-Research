@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from backend.api.deps import (
     AuthenticatedUser,
@@ -18,6 +19,7 @@ from backend.api.dto_models import (
     ReportStatusResponse,
     ReportSummary,
 )
+from backend.api.utils import attach_signed_url
 from backend.celery_app.redis_client import client
 from backend.db.models import RunStatus
 from backend.db.services.user_report_service import reports_service
@@ -27,58 +29,7 @@ router = APIRouter()
 # _report_service = UserReportService()
 connection_manager = ConnectionManager()
 
-
-@router.get(
-    "/report/{report_id}",
-    response_model=ReportResponse | ReportStatusResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def get_report(
-    report_id: UUID,
-    user: AuthenticatedUser = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-) -> ReportResponse | ReportStatusResponse:
-    report = await reports_service.get_report_by_id(session, report_id)
-    if report.user_id != user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Report '{report_id}' not found.",
-        )
-
-    if report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Report '{report_id}' not found.",
-        )
-
-    if report.status not in {RunStatus.DONE, RunStatus.FAILED}:
-        # response.status_code = status.HTTP_202_ACCEPTED
-        return ReportStatusResponse(
-            report_id=report.id,
-            status=report.status,
-        )
-
-    if report.status == RunStatus.DONE:
-        return ReportResponse(
-            report_id=report.id,
-            goal=report.goal,
-            intent=report.intent,
-            categories=report.categories,
-            strategy_summary=report.strategy_summary,
-            title=report.report_title,
-            content=report.report_content,
-            created_at=report.created_at.isoformat(),
-            updated_at=report.updated_at.isoformat(),
-        )
-
-    # RunStatus.FAILED or any unexpected value
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail=f"Report '{report_id}' failed during processing.",
-    )
-
-
-@router.get("/reports", response_model=ReportsListResponse)
+@router.get("/all", response_model=ReportsListResponse)
 async def get_user_reports(
     user: AuthenticatedUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -94,11 +45,69 @@ async def get_user_reports(
     )
     return ReportsListResponse(
         reports=[
-            ReportSummary(report_id=row[0], title=row[1], status=row[3]) for row in rows
+            ReportSummary(report_id=row[0], title=row[1], status=row[2]) for row in rows
         ],
         limit=limit,
         offset=offset,
     )
+
+@router.get(
+    "/{report_id}",
+    response_model=ReportResponse | ReportStatusResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_report(
+    report_id: UUID,
+    user: AuthenticatedUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ReportResponse | ReportStatusResponse:
+    report = await reports_service.get_report_by_id(session, report_id)
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report '{report_id}' not found.",
+        )
+
+    if report.user_id != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report '{report_id}' not found.",
+        )
+
+    if report.status not in {RunStatus.DONE, RunStatus.FAILED}:
+        # response.status_code = status.HTTP_202_ACCEPTED
+        return ReportStatusResponse(
+            report_id=report.id,
+            status=report.status,
+        )
+
+    if report.status == RunStatus.DONE:
+        try:
+            formatted_content: str = await attach_signed_url(
+                report.report_content if report.report_content else ""
+            )
+            return ReportResponse(
+                report_id=report.id,
+                goal=report.goal,
+                intent=report.intent,
+                categories=report.categories,
+                strategy_summary=report.strategy_summary,
+                title=report.report_title,
+                content=formatted_content,
+                created_at=report.created_at.isoformat(),
+                updated_at=report.updated_at.isoformat(),
+            )
+        except:
+            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # RunStatus.FAILED or any unexpected value
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=f"Report '{report_id}' failed during processing.",
+    )
+
+
+
 
 
 @router.websocket(

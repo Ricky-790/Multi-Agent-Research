@@ -100,14 +100,17 @@ class MessagesService:
         return result.scalars().all()
 
     async def get_all_conversations(
-        self, session: AsyncSession, user_id: UUID
+        self, session: AsyncSession, user_id: UUID, limit: int = 5, offset: int = 0
     ) -> list[Conversations]:
         results = await session.execute(
-            select(Conversations.id, Conversations.title)
+            select(Conversations.id, Conversations.title, Conversations.updated_at)
             .where(Conversations.user_id == user_id)
             .order_by(Conversations.updated_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
-        return results.scalars().all()
+        return list(results.all())
+
 
 
 message_service = MessagesService()
