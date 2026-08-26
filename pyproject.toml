@@ -25,4 +25,5 @@ dependencies = [
     "langchain-google-vertexai>=3.2.4",
     "e2b-code-interpreter>=2.9.1",
     "supabase>=2.31.0",
+    "langchain-openai>=1.6.0",
 ]
