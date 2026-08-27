@@ -16,8 +16,9 @@ from agents_service.models import (
 
 def merge_dicts(old: dict, new: dict) -> dict:
     """Reducer: deep-merge two dicts (for task results)."""
-    merged = dict(old)
-    merged.update(new)
+    merged = dict(old) if old else {}
+    if new:
+        merged.update(new)
     return merged
 
 
@@ -28,6 +29,7 @@ def add_to_list(old: list, new: list) -> list:
 
 class ResearchGraphState(TypedDict):
     """Global state for the entire research runtime."""
+
     report_id: str
     # Inputs
     query: str

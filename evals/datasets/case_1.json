@@ -1,0 +1,26 @@
+{
+  "input": {
+    "report_id": "eval_run_case1",
+    "query": "Prepare a detailed report on Digital assets vs Real world assets, what people are prefering in recent years, which had better growth curves, how many years both have been around, past, history, etc.",
+    "categories": ["finance", "historic_event"],
+    "classification": null,
+    "plan": null,
+    "task_results": {},
+    "report_outline": null,
+    "written_sections": null,
+    "final_report": null,
+    "error": null
+  },
+  "expected": {
+    "report_id": "eval_run_case1",
+    "query": "Prepare a report on XYZ",
+    "categories": ["finance", "tech"],
+    "classification": null,
+    "plan": null,
+    "task_results": {},
+    "report_outline": null,
+    "written_sections": null,
+    "final_report": null,
+    "error": null
+  }
+}

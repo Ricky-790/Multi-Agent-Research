@@ -20,11 +20,6 @@ model_name: str = os.getenv("DECOMPOSER_MODEL", "")
 
 async def create_research_plan(goal: str, categories: list[str]) -> ResearchPlan:
     instructions = build_decomposer_instructions(categories)
-
-    # model = GroqModel(
-    #     model_name,
-    #     provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
-    # )
     model = GoogleModel(
         model_name,
         provider=GoogleProvider(api_key=os.getenv("GOOGLE_API_KEY", "")),
@@ -40,6 +35,6 @@ async def create_research_plan(goal: str, categories: list[str]) -> ResearchPlan
     return result.output
 
 
-import asyncio
+# import asyncio
 
 # asyncio.run(create_research_plan("Research btc vs sol", ["tech", "finance"]))

@@ -4,13 +4,13 @@ from typing import Dict, List, Literal, Union
 from tavily import AsyncTavilyClient
 
 from agents_service.tools.schemas import SearchResult
-
+from langsmith import traceable
 
 # async def get_tavily_client():
 tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 # return tavily_client
 
-
+@traceable(run_type="tool")
 async def web_search(query: str, max_results: int = 3) -> List[SearchResult] | Dict:
     """
     Performs a basic web search.
@@ -40,7 +40,7 @@ async def web_search(query: str, max_results: int = 3) -> List[SearchResult] | D
     except Exception as e:
         return {"error": str(e)}
 
-
+@traceable(run_type="tool")
 async def extract_page(
     urls: Union[List[str], str],
     extract_depth: Literal["basic", "advanced"] | None = None,
@@ -81,7 +81,7 @@ async def extract_page(
     except Exception as e:
         return {"error": str(e)}
 
-
+@traceable(run_type="tool")
 async def crawl_page(
     url: str,
     instructions: str | None = None,

@@ -3,6 +3,7 @@ from .classifier_prompts import (
     CLASSIFIER_PROMPT_TEMPLATE,
 )
 from .decomposer_prompts import (
+    DECOMPOSER_AGENT_INSTRUCTIONS,
     DECOMPOSER_PROMPT_TEMPLATE,
 )
 from .diagram_prompts import DIAGRAM_AGENT_PROMPT, DIAGRAM_AGENT_SYSTEM_INSTRUCTIONS
