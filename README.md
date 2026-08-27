@@ -102,8 +102,7 @@ uv run celery -A backend.celery_app worker --loglevel=info
 
 ### Prerequisites
 
-- **Node.js** (v18+)
-- **npm** or **yarn**
+- **bun**
 
 ### 1. Navigate to the Frontend Directory
 
@@ -114,7 +113,7 @@ cd frontend
 ### 2. Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### 3. Environment Configuration
@@ -133,10 +132,10 @@ VITE_WS_URL=ws://localhost:8000
 ### 4. Start the Development Server
 
 ```bash
-npm run dev
+bun run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+The app will be available at `http://localhost:3000`.
 
 ---
 
