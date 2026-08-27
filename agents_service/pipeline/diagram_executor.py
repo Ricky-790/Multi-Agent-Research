@@ -39,9 +39,22 @@ async def _render_mermaid(mermaid_str: str) -> bytes:
 
     import httpx
 
+    if mermaid_str.startswith("```"):
+        lines = mermaid_str.splitlines()
+
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    mermaid_str = "\n".join(lines)
+
     encoded = base64.urlsafe_b64encode(mermaid_str.encode()).decode()
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.get(f"https://mermaid.ink/img/{encoded}")
+        if response.status_code != 200:
+            print("Status:", response.status_code)
+            print("Response:", response.text)
+
         response.raise_for_status()
         return response.content
 
