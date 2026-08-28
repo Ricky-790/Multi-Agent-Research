@@ -15,13 +15,16 @@ from agents_service.prompts import (
 
 load_dotenv()
 
-model_name: str = os.getenv("INTENT_CLASSIFIER_MODEL", "google/gemma-4-26b-a4b-it:free")
+model_name: str = os.getenv("INTENT_CLASSIFIER_MODEL", "qwen/qwen3.6-27b")
 
 
 def get_classifier_agent() -> Agent:
     model = GroqModel(
         model_name,
-        provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY", "")),
+        provider=GroqProvider(
+            # base_url="https://integrate.api.nvidia.com/v1",
+            api_key=os.getenv("GROQ_API_KEY", ""),
+        ),
     )
     classifier_agent = Agent(
         model,
