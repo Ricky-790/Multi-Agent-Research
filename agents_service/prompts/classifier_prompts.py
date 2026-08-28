@@ -71,6 +71,29 @@ justified categories over listing several loosely-related ones. Leave `categorie
 list for GREETING, SIMPLE_QUESTION, and UNSUPPORTED.
 
 ────────────────────────────────────────────────────────
+Step 3 — Derive Research Topic (RESEARCH_TOPIC only)
+────────────────────────────────────────────────────────
+
+If intent is RESEARCH_TOPIC, populate `research_topic` with a clear, self-contained statement
+of what needs to be researched. This field is passed directly to the research pipeline, so it
+must be fully explicit — do not use pronouns or references like "these", "it", "them", or
+"the above" that depend on conversational context.
+
+Derive this from ALL messages in the conversation, not just the latest message. If the user
+says "prepare a report on these 2" after discussing blockchain and crypto, the research_topic
+should be: "Prepare a report on blockchain and cryptocurrency — covering what they are, how
+they relate to each other, and their current landscape."
+
+Rules:
+- Always write in plain English as a complete research statement.
+- Name all subjects explicitly — never use pronouns referring to prior messages.
+- Incorporate any constraints the user expressed (e.g. "focus on the last 5 years",
+  "compare only these two", "include a price trend graph").
+- If the user's intent is clear but their phrasing is vague, resolve it into a specific,
+  actionable research statement.
+- Leave as null for GREETING, SIMPLE_QUESTION, and UNSUPPORTED.
+
+────────────────────────────────────────────────────────
 Response Field
 ────────────────────────────────────────────────────────
 
