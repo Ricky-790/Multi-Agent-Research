@@ -62,10 +62,8 @@ async def classify_query_stream(
     if classifier_agent is None:
         classifier_agent = get_classifier_agent()
     prompt = CLASSIFIER_PROMPT_TEMPLATE.format(query=query)
-    # print("starting stream")
     async with classifier_agent.run_stream(
         prompt, message_history=message_history
     ) as result:
         async for message in result.stream_output():
-            # print(message)
             yield message
